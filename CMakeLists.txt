@@ -12,6 +12,7 @@ include_directories(include)
 
 set(SOURCES
     main.cpp
+	src/game.cpp
     src/card.cpp
 	src/player.cpp
     src/wonder.cpp
@@ -19,6 +20,7 @@ set(SOURCES
 	)
 
 set(HEADERS
+	include/game.h
     include/card.h
 	include/player.h
 	include/resources.h
