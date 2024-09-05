@@ -32,11 +32,13 @@ namespace DMAG {
         std::vector<Card> deck[3]; // To be changed to Deck deck[3];
         std::vector<Card> discard_pile; // To be changed to Deck discard_pile;
         Filer fp;
+        void WriteGameStatus();
 
     public:
         Game();
+        Game(const Game& toCopy);
         void Init();
-        void NewGame(int _players);
+        int NewGame(int _players);
         void Close();
         void Loop();
         bool InGame();

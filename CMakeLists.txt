@@ -20,6 +20,7 @@ set(SOURCES
 	)
 
 set(HEADERS
+	node.h
 	include/game.h
     include/card.h
 	include/player.h
