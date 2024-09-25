@@ -36,6 +36,40 @@ Player::Player()
     this->player_west = NULL;
 }
 
+//deep copy constructor
+Player::Player(const Player& other)
+        : id(other.id),
+          board(other.board),
+          cards_hand(other.cards_hand),
+          cards_played(other.cards_played),
+          cards_playable(other.cards_playable),
+          victory_tokens(other.victory_tokens),
+          defeat_tokens(other.defeat_tokens),
+          victory_points(other.victory_points),
+          play_seventh(other.play_seventh),
+          wonder_raw_cheap(other.wonder_raw_cheap),
+          raw_cheap_east(other.raw_cheap_east),
+          raw_cheap_west(other.raw_cheap_west),
+          manuf_cheap(other.manuf_cheap),
+          free_card_once(other.free_card_once),
+          discard_free(other.discard_free),
+          can_build_wonder(other.can_build_wonder),
+          raw_extra(other.raw_extra),
+          manuf_extra(other.manuf_extra),
+          used_tree_farm(other.used_tree_farm),
+          used_forest_cave(other.used_forest_cave),
+          used_timber_yard(other.used_timber_yard),
+          used_excavation(other.used_excavation),
+          used_mine(other.used_mine),
+          used_clay_pit(other.used_clay_pit),
+          used_forum(other.used_forum),
+          used_caravansery(other.used_caravansery),
+          resources(other.resources),
+          player_east(nullptr),
+          player_west(nullptr)
+    {
+    }
+
 //////////////////
 // CARD-RELATED //
 //////////////////
@@ -88,12 +122,11 @@ bool Player::BuildStructure(DMAG::Card c, std::vector<DMAG::Card> cards, bool fr
     // Checks if card is in hand.
     size_t i = 0;
     for (i = 0; i < cards.size(); i++) {
-        //std::cout << cards[i].GetName() << std::endl;
         if (cards[i].Equal(c)) break;
     }
     if (i == cards.size()) {
         // ERROR: Card played was not found in the vector
-        std::cout << " -> FAILURE: Card not found in vector." << std::endl;
+        std::cout << " -> FAILURE: " << c.GetName() << " not found in vector." << std::endl;
         return false;
     }
 
@@ -247,7 +280,6 @@ bool Player::BuildStructure(DMAG::Card c, std::vector<DMAG::Card> cards, bool fr
 
     if (!free_card) this->resources[RESOURCE::coins] -= cost;
     std::cout << this->id << " -> SUCCESS -> " << "builds " << c.GetName() << std::endl;
-
     return true;
 }
 
@@ -345,6 +377,8 @@ void Player::Discard(DMAG::Card c){
         if (this->cards_hand[i].Equal(c)) break;
     }
     this->cards_hand.erase(this->cards_hand.begin()+i);
+
+    std::cout << c.GetName() << " discarded." << std::endl;
 }
 
 // Returns the quantity of played cards of a given type (commercial, military, materials, etc.)

@@ -62,13 +62,29 @@ Game::Game(){
 
 // Copy constructor
 DMAG::Game::Game(const Game& toCopy)
-    : player_list(toCopy.player_list),
-      number_of_players(toCopy.number_of_players),
+    : number_of_players(toCopy.number_of_players),
       era(toCopy.era),
       turn(toCopy.turn),
       wonders(toCopy.wonders),
       deck(toCopy.deck),
-      discard_pile(toCopy.discard_pile) { // Assuming Filer is copyable
+      discard_pile(toCopy.discard_pile) {
+
+    // Deep copy of player_list
+    player_list.reserve(toCopy.player_list.size());
+    
+    // Step 1: Deep copy each player without setting neighbors
+    std::unordered_map<const Player*, Player*> playerMap;  // Map original to new players
+    for (const auto& originalPlayer : toCopy.player_list) {
+        Player* newPlayer = new Player(*originalPlayer);
+        player_list.push_back(newPlayer);
+        playerMap[originalPlayer] = newPlayer;  // Map original to new
+    }
+
+    // Step 2: Set neighbors after all players are copied
+    for (size_t i = 0; i < player_list.size(); ++i) {
+        Player* originalPlayer = toCopy.player_list[i];
+        player_list[i]->SetNeighbors(playerMap[originalPlayer->GetEastNeighbor()], playerMap[originalPlayer->GetWestNeighbor()]);   // Map original west neighbor to new one
+    }
 }
 
 /*
@@ -104,7 +120,7 @@ void Game::NextTurn(){
         era++;
         cout << "-----------------------------------------------------------------\n";
         if(era < 4)
-            cout << "Nova era: "<< era << endl;
+            cout << "New era: "<< era << endl;
         else{
             cout << "End of game" << endl;
             return;
@@ -137,9 +153,7 @@ void Game::NextTurn(){
             neighbor->ReceiveCards(player_deck);
             player = neighbor;
             player_deck = neighbor_deck;
-            //cout << "Passou" << endl;
-        } while (p1 != player);
-        //cout << "Passou tudo" << endl;
+        } while (p1->GetId() != player->GetId());
     }
 }
 
@@ -441,7 +455,7 @@ void Game::WriteGameStatus() {
         status["players"][to_string(i)]["amount"]["manufactured_goods"] = player_list[i]->CalculateAmountManufacturedGood();
     }
 
-    fp.WriteMessage(status, "./io/game_status.json");
+    fp.WriteMessage(status, "../io/game_status.json");
 }
 
 void Game::Loop(){
@@ -559,5 +573,57 @@ void Game::Loop(){
     fp.WriteMatchLog(player_list, time(0));
 }
 
+void Game::endTurn(){
+    // Moves the game to the next turn.
+    // VERY IMPORTANT: call player->ResetUsed() for each player at the end of a turn!
+    for (int i = 0; i < player_list.size(); i++) {
+        player_list[i]->ResetUsed();
+    }
+    NextTurn();
+}
+
+std::vector<Card> Game::getPossibleCardsForPlayer(int playerIndex){
+    return player_list[playerIndex]->GetPlayableCards();
+}
+
+std::vector<Card> Game::getAllCardsForPlayer(int playerIndex){
+    return player_list[playerIndex]->GetHandCards();
+}
+
+bool Game::playCard(int playerIndex, Card card){
+    return player_list[playerIndex]->BuildStructure(card, player_list[playerIndex]->GetHandCards(), false);
+}
+
+void Game::discardCard(int playerIndex, Card card){
+    return player_list[playerIndex]->Discard(card);
+}
+
+int Game::getNumberOfPlayers(){
+    return number_of_players;
+}
+
+int Game::getPlayerScore(int playerIndex){
+    return player_list[playerIndex]->CalculateScore();
+}
+
+void Game::gameEnd(){
+    //calculate stuff
+    std::ofstream results;
+    results.open("results.txt");
+
+    for(int i = 0; i< NUM_PLAYERS; ++i){
+        // Copies a neighbor guild before scoring if the player has the ability to do so.
+        player_list[i]->CopyGuild();
+        results << "Player " << i+1 << " score: " << player_list[i]->CalculateScore() << std::endl;
+    }
+
+    results << std::endl;
+    results.close();
+
+    //end game?
+    // output results after game
+    // match_log_results after end game
+    fp.WriteMatchLog(player_list, time(0));
+}
 
 }

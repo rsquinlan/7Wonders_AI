@@ -12,6 +12,8 @@ include_directories(include)
 
 set(SOURCES
     main.cpp
+	node.cpp
+	mcts.cpp
 	src/game.cpp
     src/card.cpp
 	src/player.cpp
@@ -20,6 +22,7 @@ set(SOURCES
 	)
 
 set(HEADERS
+	mcts.h
 	node.h
 	include/game.h
     include/card.h

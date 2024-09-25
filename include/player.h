@@ -66,6 +66,7 @@ private:
 
 public:
     Player();
+    Player(const Player& other);
 
     // Card-related:
     bool BuildWonder(DMAG::Card c);

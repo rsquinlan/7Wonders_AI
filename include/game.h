@@ -32,7 +32,6 @@ namespace DMAG {
         std::vector<Card> deck[3]; // To be changed to Deck deck[3];
         std::vector<Card> discard_pile; // To be changed to Deck discard_pile;
         Filer fp;
-        void WriteGameStatus();
 
     public:
         Game();
@@ -50,6 +49,17 @@ namespace DMAG {
 
         Card GetCardByName(std::string name);
         int GetResourceByName(std::string name);
+        int getNumberOfPlayers();
+
+        std::vector<Card> getPossibleCardsForPlayer(int playerIndex);
+        std::vector<Card> getAllCardsForPlayer(int playerIndex);
+        bool playCard(int playerIndex, Card card);
+        void discardCard(int playerIndex, Card card);
+        int getPlayerScore(int playerIndex);
+
+        void gameEnd();
+        void WriteGameStatus();
+        void endTurn();
     };
 }
 
