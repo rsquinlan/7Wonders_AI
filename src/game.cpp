@@ -590,8 +590,20 @@ std::vector<Card> Game::getAllCardsForPlayer(int playerIndex){
     return player_list[playerIndex]->GetHandCards();
 }
 
+void Game::applyAction(int playerIndex, Card card){
+    if(!playCard(playerIndex, card)){
+        if(!buildWonder(playerIndex, card)){
+            discardCard(playerIndex, card);
+        }
+    }
+}
+
 bool Game::playCard(int playerIndex, Card card){
     return player_list[playerIndex]->BuildStructure(card, player_list[playerIndex]->GetHandCards(), false);
+}
+
+bool Game::buildWonder(int playerIndex, Card card){
+    return player_list[playerIndex]->BuildWonder(card);
 }
 
 void Game::discardCard(int playerIndex, Card card){

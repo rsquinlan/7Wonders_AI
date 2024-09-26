@@ -53,7 +53,9 @@ namespace DMAG {
 
         std::vector<Card> getPossibleCardsForPlayer(int playerIndex);
         std::vector<Card> getAllCardsForPlayer(int playerIndex);
+        void applyAction(int playerIndex, Card card);
         bool playCard(int playerIndex, Card card);
+        bool buildWonder(int playerIndex, Card card);
         void discardCard(int playerIndex, Card card);
         int getPlayerScore(int playerIndex);
 

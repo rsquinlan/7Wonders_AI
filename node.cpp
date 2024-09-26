@@ -5,8 +5,8 @@
 #include <stdexcept>
 
 // Constructor: Initializes a node with a given state and an optional parent.
-Node::Node(DMAG::Game* state, int totalPlayers, std::shared_ptr<Node> parent)
-    : state(state), parent(parent), totalPlayers(totalPlayers),
+Node::Node(DMAG::Game* state, int totalPlayers, int activePlayer, std::shared_ptr<Node> parent)
+    : state(state), parent(parent), totalPlayers(totalPlayers), activePlayer(activePlayer),
       visitCount(0), value(0.0) {}
 
 // Adds a child node to this node.
@@ -81,99 +81,46 @@ bool Node::isLeaf() const {
 }
 
 // Returns the joint action for this node.
-const std::vector<DMAG::Card>& Node::getJointAction() const {
-    return jointAction;
+const DMAG::Card Node::getAction() const {
+    return action;
 }
 
-void Node::setJointAction(const std::vector<DMAG::Card>& jointAction) {
-    this->jointAction = jointAction;
+void Node::setAction(const DMAG::Card action) {
+    this->action = action;
 }
 
 void Node::expand() {
-    // Step 1: Copy parent's state and execute joint action
-    if(parent){
+    // Step 1: Copy the parent's state and execute the action
+    if (parent) {
         DMAG::Game newState(parent->getState());  // Copy the parent's state
 
-        // Step 2: Apply the joint action to the copied state
-        applyJointAction(newState, jointAction);  // Apply joint action to the new state
+        // Step 2: Apply the action taken by the parent (for the active player) to the copied state
+        applyAction(newState, action);  // Apply the action to the new state
 
-        // Step 3: End the turn for the current state after joint action
+        // Step 3: End the turn for the current state after the action
         newState.endTurn();
 
+        // Update this node's state to reflect the new state after the action
         state = new DMAG::Game(newState);
     }
 
-    // Step 2: Get possible cards to play for each player
-    std::vector<std::vector<DMAG::Card>> allPlayersCards;
-    for (int playerIndex = 0; playerIndex < totalPlayers; playerIndex++) {
-        std::vector<DMAG::Card> possibleCards = state->getPossibleCardsForPlayer(playerIndex);
-        if (possibleCards.empty()) {
-            possibleCards.push_back(state->getAllCardsForPlayer(playerIndex)[0]);
-        }
-        allPlayersCards.push_back(possibleCards);
+    // Step 2: Get the possible actions (cards) for the active player
+    std::vector<DMAG::Card> possibleCards = state->getPossibleCardsForPlayer(activePlayer);
+
+    // Ensure there is at least one card (fallback if no cards are available)
+    if (possibleCards.empty()) {
+        possibleCards.push_back(state->getAllCardsForPlayer(activePlayer)[0]);
     }
 
-    // Step 3: Generate all combinations of cards (joint actions)
-    std::vector<std::vector<DMAG::Card>> jointActions;
-    generateCombinations(allPlayersCards, jointActions);
-
-    // Step 4: Create child, which stores an empty gameState until it is expanded (to save on memory)
-    for (const auto& jointAction : jointActions) {
-        // Use std::make_shared instead of std::make_unique
+    // Step 3: Create a child node for each possible action (single card) the active player can take
+    for (const DMAG::Card& cardAction : possibleCards) {
+        // Create a child node with an empty game state (to save memory until it's expanded)
         auto childNode = std::make_shared<Node>(nullptr, totalPlayers, shared_from_this());
-        childNode->setJointAction(jointAction);  // Set joint action for the child node
+
+        // Set the action (card) for the child node
+        childNode->setAction(cardAction);  // This action represents the active player's move
+
+        // Add the child node to the current node's children
         addChild(childNode);
-    }
-}
-
-void Node::generateCombinations(const std::vector<std::vector<DMAG::Card>>& allPlayersCards, 
-                                std::vector<std::vector<DMAG::Card>>& jointActions,
-                                std::vector<DMAG::Card> currentCombination, 
-                                int depth) const {
-    // Debugging: Print the current depth and combination being processed
-    std::cout << "Depth: " << depth << std::endl;
-    std::cout << "Current Combination: ";
-    for (const auto& card : currentCombination) {
-        std::cout << card.GetName() << " ";  // Assuming Card has a GetName() method
-    }
-    std::cout << std::endl;
-
-    // Base case: all players have been processed
-    if (depth == allPlayersCards.size()) {
-        jointActions.push_back(currentCombination);
-
-        // Debugging: Print the combination being added to jointActions
-        std::cout << "Added Combination: ";
-        for (const auto& card : currentCombination) {
-            std::cout << card.GetName() << " ";  // Assuming Card has a GetName() method
-        }
-        std::cout << std::endl;
-
-        return;
-    }
-
-    // Recursive case: process each card for the current player
-    for (const DMAG::Card& card : allPlayersCards[depth]) {
-        currentCombination.push_back(card);
-
-        // Debugging: Print the card being added for the current player
-        std::cout << "Adding Card: " << card.GetName() << " for player " << depth << std::endl;
-
-        generateCombinations(allPlayersCards, jointActions, currentCombination, depth + 1);
-
-        // Backtrack: remove the last added card
-        currentCombination.pop_back();
-
-        // Debugging: Print the card being removed
-        std::cout << "Removing Card: " << card.GetName() << " for player " << depth << std::endl;
-    }
-}
-
-void Node::applyJointAction(DMAG::Game& state, const std::vector<DMAG::Card>& jointAction) const {
-    for (size_t i = 0; i < jointAction.size(); ++i) {
-        const DMAG::Card& card = jointAction[i];
-        if(!state.playCard(i, card)){
-            state.discardCard(i, card);
-        }
     }
 }

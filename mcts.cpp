@@ -21,21 +21,21 @@ void MCTS::expand(std::shared_ptr<Node> node) {
 double MCTS::simulate(std::shared_ptr<Node> node) {
     DMAG::Game state = node->getState();
     while (state.InGame()) {
-        std::vector<DMAG::Card> jointAction;
+        std::vector<DMAG::Card> action;
         for (int i = 0; i < totalPlayers; ++i) {
             std::vector<DMAG::Card> possibleCards = state.getPossibleCardsForPlayer(i);
             if (!possibleCards.empty()) {
                 int randomIndex = rand() % possibleCards.size();
-                jointAction.push_back(possibleCards[randomIndex]);
+                action.push_back(possibleCards[randomIndex]);
             }
         }
-        for (size_t i = 0; i < jointAction.size(); ++i) {
+        for (size_t i = 0; i < action.size(); ++i) {
             std::vector<DMAG::Card> possibleCards = state.getAllCardsForPlayer(i);
             for(auto card : possibleCards){
                 std::cout << card.GetName() << ", ";
             }
-            std::cout << std::endl << jointAction[i].GetName() << std::endl;
-            state.playCard(i, jointAction[i]);
+            std::cout << std::endl << action[i].GetName() << std::endl;
+            state.playCard(i, action[i]);
         }
         state.endTurn();
     }
@@ -53,7 +53,7 @@ void MCTS::backpropagate(std::shared_ptr<Node> node, double reward) {
 MCTS::MCTS(const DMAG::Game& initialState, int totalPlayers, int currentPlayer, double explorationConstant)
     : totalPlayers(totalPlayers), currentPlayer(currentPlayer), explorationConstant(explorationConstant) {
     DMAG::Game* initialStatePtr = new DMAG::Game(initialState); // Create a new game instance
-    root = std::make_shared<Node>(initialStatePtr, totalPlayers, nullptr);
+    root = std::make_shared<Node>(initialStatePtr, totalPlayers, currentPlayer, nullptr);
 }
 
 // Perform MCTS search and return the best move for the current player

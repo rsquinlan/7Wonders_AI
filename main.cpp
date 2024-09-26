@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 
             // Perform MCTS search to get the best move for the current player
             std::shared_ptr<Node> bestChild = mctsPlayers[currentPlayer].search(5, currentPlayer, currentNodes[currentPlayer]);
-            DMAG::Card bestMove = bestChild.get()->getJointAction()[currentPlayer];
+            DMAG::Card bestMove = bestChild.get()->getAction()[currentPlayer];
 
             std::cout << "\nBest move: " << bestMove.GetName() << std::endl;
             
