@@ -3,18 +3,15 @@
 
 // Selection step: Select the most promising child node based on UCB1 value
 std::shared_ptr<Node> MCTS::select(std::shared_ptr<Node> node) {
-    while (!node->isLeaf()) {
+    while (node->isFullyExpanded()) {
         node = node->selectBestChild();
     }
-
     return node;
 }
 
 // Expansion step: Expand a node by generating all possible joint actions
-void MCTS::expand(std::shared_ptr<Node> node) {
-    if (node->isLeaf()) {
-        node->expand();
-    }
+std::shared_ptr<Node> MCTS::expand(std::shared_ptr<Node> node) {
+    return node->expand();
 }
 
 // Simulation step: Simulate a random playout from a given node
@@ -57,27 +54,23 @@ MCTS::MCTS(const DMAG::Game& initialState, int totalPlayers, int currentPlayer, 
 }
 
 // Perform MCTS search and return the best move for the current player
-std::shared_ptr<Node> MCTS::search(int iterations, int currentPlayer, std::shared_ptr<Node> currentNode) {
+std::shared_ptr<Node> MCTS::search(int iterations) {
     for (int i = 0; i < iterations; ++i) {
-        std::shared_ptr<Node> selectedNode = select(currentNode);
-        expand(selectedNode);
-
+        std::shared_ptr<Node> selectedNode = select(root);
+        std::shared_ptr<Node> expandedNode = expand(selectedNode);
         // Create a new Game instance based on the selectedNode's state
-        DMAG::Game* initialStatePtr = new DMAG::Game(selectedNode->getState());
-        auto clonedNode = std::make_shared<Node>(initialStatePtr, totalPlayers, nullptr);
-        
+        DMAG::Game* initialStatePtr = new DMAG::Game(expandedNode->getState());
+        auto clonedNode = std::make_shared<Node>(initialStatePtr, totalPlayers, currentPlayer, nullptr);
         double reward = simulate(clonedNode);
         backpropagate(selectedNode, reward);
-    }
-
-    if(currentNode->getChildren().size() == 0){
-        std::cin.ignore();
+        // std::cout << i << std::endl;
+        // std::cin.ignore();
     }
 
     // Find the best child node based on the average value per visit
     auto bestChildIt = std::max_element(
-        currentNode->getChildren().begin(),
-        currentNode->getChildren().end(),
+        root->getChildren().begin(),
+        root->getChildren().end(),
         [](const std::shared_ptr<Node>& a, const std::shared_ptr<Node>& b) {
             return a->getValue() / a->getVisitCount() < b->getValue() / b->getVisitCount();
         }
@@ -115,4 +108,12 @@ std::shared_ptr<Node> MCTS::getRoot() {
         throw std::runtime_error("Root node is null.");
     }
     return root;  // Dereference the shared_ptr to get the Node reference
+}
+
+void MCTS::setRoot(std::shared_ptr<Node> newRoot) {
+    root = newRoot;  // Simply update the root to the selected node
+}
+
+void MCTS::syncTreeWithGameState(DMAG::Game& updatedState) {
+    root->setState(updatedState);  // Set the new root state for synchronization
 }

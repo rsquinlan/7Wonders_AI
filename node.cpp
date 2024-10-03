@@ -42,8 +42,6 @@ std::shared_ptr<Node> Node::selectBestChild() const {
     return bestChild;  // Return the selected child
 }
 
-
-
 // Updates the node's value and visit count after a simulation.
 void Node::update(double value) {
     this->value += value;
@@ -75,13 +73,15 @@ double Node::getValue() const {
     return value;
 }
 
-// Checks if the node is a leaf (i.e., has no children).
-bool Node::isLeaf() const {
-    return children.empty();
+bool Node::isFullyExpanded() const {
+    if (children.empty()){
+        return false;
+    }
+    return children.size() == state->getPossibleCardsForPlayer(activePlayer).size();
 }
 
 // Returns the joint action for this node.
-const DMAG::Card Node::getAction() const {
+DMAG::Card Node::getAction() const {
     return action;
 }
 
@@ -89,38 +89,85 @@ void Node::setAction(const DMAG::Card action) {
     this->action = action;
 }
 
-void Node::expand() {
-    // Step 1: Copy the parent's state and execute the action
-    if (parent) {
-        DMAG::Game newState(parent->getState());  // Copy the parent's state
-
-        // Step 2: Apply the action taken by the parent (for the active player) to the copied state
-        applyAction(newState, action);  // Apply the action to the new state
-
-        // Step 3: End the turn for the current state after the action
-        newState.endTurn();
-
-        // Update this node's state to reflect the new state after the action
-        state = new DMAG::Game(newState);
+void Node::setState(DMAG::Game& newState) {
+    // Assign the new state to the node, creating a deep copy of the passed-in game state
+    if (state) {
+        delete state;  // Free the previous state to prevent memory leaks
     }
+    state = new DMAG::Game(newState);  // Allocate new memory for the game state
+}
 
+
+#include <algorithm> // For std::find_if
+
+std::shared_ptr<Node> Node::expand() {
     // Step 2: Get the possible actions (cards) for the active player
-    std::vector<DMAG::Card> possibleCards = state->getPossibleCardsForPlayer(activePlayer);
+    std::vector<DMAG::Card> possibleActions = state->getPossibleCardsForPlayer(activePlayer);
 
     // Ensure there is at least one card (fallback if no cards are available)
-    if (possibleCards.empty()) {
-        possibleCards.push_back(state->getAllCardsForPlayer(activePlayer)[0]);
+    if (possibleActions.empty()) {
+        possibleActions.push_back(state->getAllCardsForPlayer(activePlayer)[0]);
     }
 
-    // Step 3: Create a child node for each possible action (single card) the active player can take
-    for (const DMAG::Card& cardAction : possibleCards) {
-        // Create a child node with an empty game state (to save memory until it's expanded)
-        auto childNode = std::make_shared<Node>(nullptr, totalPlayers, shared_from_this());
+    // Step 3: Select a random action until we find one that hasn't been expanded yet
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(0, possibleActions.size() - 1);
 
-        // Set the action (card) for the child node
-        childNode->setAction(cardAction);  // This action represents the active player's move
+    DMAG::Card selectedAction;
+    bool actionExists = true;
 
-        // Add the child node to the current node's children
-        addChild(childNode);
+    // Loop until we find a non-expanded action
+    while (actionExists) {
+        selectedAction = possibleActions[dist(gen)];  // Pick a random action
+
+        // Check if this action has already been expanded as a child
+        actionExists = std::any_of(children.begin(), children.end(),
+            [&](const std::shared_ptr<Node>& child) {
+                return child->getAction().GetId() == selectedAction.GetId();
+            });
+
+        // If action doesn't exist as a child, break the loop
+        if (!actionExists) {
+            break;
+        }
     }
+
+    DMAG::Game* newState(state);  // Copy the parent's state
+
+    // Apply the active player's action
+    newState->playCard(activePlayer, selectedAction);  // Apply action to the new state for the active player
+
+    // Simulate actions for the other players to bring the game state up to date
+    for (int playerIndex = 0; playerIndex < totalPlayers; ++playerIndex) {
+        if (playerIndex != activePlayer) {
+            std::vector<DMAG::Card> possibleCards = newState->getPossibleCardsForPlayer(playerIndex);
+            
+            if (!possibleCards.empty()) {
+                // Use random device to generate a random card index
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_int_distribution<> dist(0, possibleCards.size() - 1);
+
+                // Pick a random card from the possible cards
+                int randomIndex = dist(gen);
+                DMAG::Card randomAction = possibleCards[randomIndex];
+
+                // Apply the randomly selected card
+                newState->playCard(playerIndex, randomAction);
+            }
+        }
+    }
+    newState->endTurn();
+
+    // Step 4: Create a child node with the selected action
+    auto childNode = std::make_shared<Node>(newState, totalPlayers, activePlayer, shared_from_this());
+
+    // Set the action (card) for the child node
+    childNode->setAction(selectedAction);  // This action represents the active player's move
+
+    // Add the child node to the current node's children
+    addChild(childNode);
+
+    return childNode;
 }

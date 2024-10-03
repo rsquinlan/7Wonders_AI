@@ -627,6 +627,7 @@ void Game::gameEnd(){
         // Copies a neighbor guild before scoring if the player has the ability to do so.
         player_list[i]->CopyGuild();
         results << "Player " << i+1 << " score: " << player_list[i]->CalculateScore() << std::endl;
+        std::cout << "Player " << i+1 << " score: " << player_list[i]->CalculateScore() << std::endl;
     }
 
     results << std::endl;

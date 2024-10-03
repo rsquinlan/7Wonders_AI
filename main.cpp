@@ -9,6 +9,17 @@
     * has information about a previously played game
     * (or just a specific card configuration)
     */
+#include "mcts.h"
+
+#define NUM_PLAYERS 3
+
+/*
+    * Args will be used to tell how to load
+    * a new game.
+    * We'll use -f filename to tell a file that
+    * has information about a previously played game
+    * (or just a specific card configuration)
+    */
 int main(int argc, char **argv)
 {
     // Initialize the game state
@@ -32,56 +43,45 @@ int main(int argc, char **argv)
     int count = 1;
 
     while (gameInProgress) {
-        // Loop through each player
         for (int currentPlayer = 0; currentPlayer < totalPlayers; ++currentPlayer) {
             if (!gameState.InGame()) {
-                break; // Exit if the game is over
+                break;  // Exit if the game is over
             }
 
-            // If the current node is null, initialize it to the root
-            if (currentNodes[currentPlayer] == nullptr) {
-                currentNodes[currentPlayer] = mctsPlayers[currentPlayer].getRoot(); // Initialize to the root node
-            }
+            // Perform MCTS on the player's own tree starting from their current node
+            std::shared_ptr<Node> selectedNode = mctsPlayers[currentPlayer].search(5);
 
-            if(count==20){
-                std::cout << "1" << std::endl;
-                std::cout << currentNodes[currentPlayer] << std::endl;
-                std::cin.ignore();
-            }
+            // Get the best move from the selected node
+            DMAG::Card bestMove = selectedNode->getAction();
+            std::cout << "\nPlayer " << currentPlayer << " best move: " << bestMove.GetName() << std::endl;
 
-            // Perform MCTS search to get the best move for the current player
-            std::shared_ptr<Node> bestChild = mctsPlayers[currentPlayer].search(5, currentPlayer, currentNodes[currentPlayer]);
-            DMAG::Card bestMove = bestChild.get()->getAction()[currentPlayer];
-
-            std::cout << "\nBest move: " << bestMove.GetName() << std::endl;
-            
             // Apply the best move to the game state
             gameState.playCard(currentPlayer, bestMove);
 
-            // Update the current node to the best child after the move
-            currentNodes[currentPlayer] = bestChild; // Initialize to the root node
+            // After applying the move, promote the selected node to the root of the current player's tree
+            mctsPlayers[currentPlayer].setRoot(selectedNode);  // Shift currentNode to be the new root
 
-            // Select the best child node based on the criteria
-            currentNodes[currentPlayer] = *std::max_element(
-                currentNodes[currentPlayer]->getChildren().begin(),
-                currentNodes[currentPlayer]->getChildren().end(),
-                [](const std::shared_ptr<Node>& a, const std::shared_ptr<Node>& b) {
-                    return a->getValue() / a->getVisitCount() < b->getValue() / b->getVisitCount();
-                }
-            );
-
+            // Update the current node for the player
+            currentNodes[currentPlayer] = mctsPlayers[currentPlayer].getRoot();
         }
 
-        count++;        
-        gameState.endTurn();
-        
-        // Check if the game should continue
+        gameState.NextTurn();
+
+        for(auto tree : mctsPlayers){
+            tree.syncTreeWithGameState(gameState);
+        }
+
         gameInProgress = gameState.InGame();
-        if (!gameInProgress) {
-            std::cout << "Game over." << std::endl;
-            break;
+        gameState.WriteGameStatus();
+        for (int playerIndex = 0; playerIndex < totalPlayers; ++playerIndex) {
+            // Get the root of the current player's tree
+            std::shared_ptr<Node> rootNode = mctsPlayers[playerIndex].getRoot();
+
+            // Access the game state from the root node
+            DMAG::Game& treeState = rootNode->getState();
         }
     }
+
 
     // Output final game state or results
     std::cout << "Game Results:" << std::endl;

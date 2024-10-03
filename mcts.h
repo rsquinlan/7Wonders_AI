@@ -22,8 +22,7 @@ private:
     // Selection step: Select the most promising child node based on UCB1 value
     std::shared_ptr<Node> select(std::shared_ptr<Node> node);
 
-    // Expansion step: Expand a node by generating all possible joint actions
-    void expand(std::shared_ptr<Node> node);
+    std::shared_ptr<Node> expand(std::shared_ptr<Node> node);
 
     // Simulation step: Simulate a random playout from a given node
     double simulate(std::shared_ptr<Node> node);
@@ -38,11 +37,15 @@ public:
     MCTS(const DMAG::Game& initialState, int totalPlayers, int currentPlayer, double explorationConstant = std::sqrt(2));
 
     // Perform MCTS search and return the best move for the current player
-    std::shared_ptr<Node> search(int iterations, int currentPlayer, std::shared_ptr<Node> currentNode);
+    std::shared_ptr<Node> search(int iterations);
 
     void printTree() const;
     
     std::shared_ptr<Node> getRoot();
+
+    void setRoot(std::shared_ptr<Node> newRoot);
+
+    void syncTreeWithGameState(DMAG::Game& updatedState);
 };
 
 #endif // MCTS_H

@@ -16,11 +16,11 @@ public:
     const std::vector<std::shared_ptr<Node>>& getChildren() const;
     int getVisitCount() const;
     double getValue() const;
-    bool isLeaf() const;
-    void expand();
+    bool isFullyExpanded() const;
+    std::shared_ptr<Node> expand();
     void setAction(DMAG::Card action);  
-    const DMAG::Card getAction() const;  
-    void setState(const DMAG::Game& newState);
+    DMAG::Card getAction() const;  
+    void setState(DMAG::Game& newState);
 
 private:
     DMAG::Game *state;
@@ -30,7 +30,7 @@ private:
     int visitCount;
     double value;
     std::vector<std::shared_ptr<Node>> children;
-    DMAG::Card action;  // Store joint action
+    DMAG::Card action;
 	
-    void applyAction(DMAG::Game& state, const DMAG::Card action) const;
+    void applyAction(DMAG::Game& state, DMAG::Card action);
 };
