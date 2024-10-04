@@ -21,6 +21,7 @@ public:
     void setAction(DMAG::Card action);  
     DMAG::Card getAction() const;  
     void setState(DMAG::Game& newState);
+    bool isFullyTerminal();
 
 private:
     DMAG::Game *state;
@@ -28,9 +29,11 @@ private:
     int totalPlayers;
     int activePlayer;
     int visitCount;
+    int terminalChildren;
     double value;
     std::vector<std::shared_ptr<Node>> children;
     DMAG::Card action;
 	
     void applyAction(DMAG::Game& state, DMAG::Card action);
+    void markChildAsTerminal();
 };

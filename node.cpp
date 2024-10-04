@@ -7,7 +7,7 @@
 // Constructor: Initializes a node with a given state and an optional parent.
 Node::Node(DMAG::Game* state, int totalPlayers, int activePlayer, std::shared_ptr<Node> parent)
     : state(state), parent(parent), totalPlayers(totalPlayers), activePlayer(activePlayer),
-      visitCount(0), value(0.0) {}
+      visitCount(0), value(0.0), terminalChildren(0) {}
 
 // Adds a child node to this node.
 void Node::addChild(std::shared_ptr<Node> child) {
@@ -25,7 +25,7 @@ std::shared_ptr<Node> Node::selectBestChild() const {
 
     for (const auto& child : children) {
          double ucbValue;
-        if (child->visitCount == 0) {
+        if (child->visitCount == 0 && !child->isFullyTerminal()) {
             // Prioritize unvisited nodes with a very high UCB value
             return child;
         }  
@@ -33,7 +33,7 @@ std::shared_ptr<Node> Node::selectBestChild() const {
         ucbValue = (child->value / child->visitCount) + 
                           sqrt(2 * log(visitCount) / child->visitCount);
 
-        if (ucbValue > bestValue) {
+        if (ucbValue > bestValue && !child->isFullyTerminal()) {
             bestValue = ucbValue;
             bestChild = child;  // Directly assign the shared_ptr
         }
@@ -77,7 +77,7 @@ bool Node::isFullyExpanded() const {
     if (children.empty()){
         return false;
     }
-    return children.size() == state->getPossibleCardsForPlayer(activePlayer).size();
+    return children.size() >= state->getPossibleCardsForPlayer(activePlayer).size() && state->InGame();
 }
 
 // Returns the joint action for this node.
@@ -133,7 +133,7 @@ std::shared_ptr<Node> Node::expand() {
         }
     }
 
-    DMAG::Game* newState(state);  // Copy the parent's state
+    DMAG::Game* newState = new DMAG::Game(*state); 
 
     // Apply the active player's action
     newState->playCard(activePlayer, selectedAction);  // Apply action to the new state for the active player
@@ -169,5 +169,26 @@ std::shared_ptr<Node> Node::expand() {
     // Add the child node to the current node's children
     addChild(childNode);
 
+    if(!newState->InGame()){
+        markChildAsTerminal();
+    }
+
     return childNode;
+}
+
+bool Node::isFullyTerminal(){
+    return terminalChildren >= state->getPossibleCardsForPlayer(activePlayer).size();
+}
+
+void Node::markChildAsTerminal() {
+    // Increment the terminal count
+    terminalChildren++;
+    
+    // If all children are terminal, mark this node as terminal
+    if (isFullyTerminal()) {
+        // Recursively propagate terminal status to the parent if applicable
+        if (parent != nullptr) {
+            parent->markChildAsTerminal();  // Parent might also become terminal
+        }
+    }
 }

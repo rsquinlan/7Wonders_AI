@@ -11,6 +11,7 @@ std::shared_ptr<Node> MCTS::select(std::shared_ptr<Node> node) {
 
 // Expansion step: Expand a node by generating all possible joint actions
 std::shared_ptr<Node> MCTS::expand(std::shared_ptr<Node> node) {
+    std::cout << node << std::endl;
     return node->expand();
 }
 
@@ -56,14 +57,20 @@ MCTS::MCTS(const DMAG::Game& initialState, int totalPlayers, int currentPlayer, 
 // Perform MCTS search and return the best move for the current player
 std::shared_ptr<Node> MCTS::search(int iterations) {
     for (int i = 0; i < iterations; ++i) {
+        if(root->isFullyTerminal()){
+            break;
+        }
+        std::cout << i << std::endl;
         std::shared_ptr<Node> selectedNode = select(root);
+        std::cout << i << std::endl;
         std::shared_ptr<Node> expandedNode = expand(selectedNode);
+        std::cout << i << std::endl;
         // Create a new Game instance based on the selectedNode's state
         DMAG::Game* initialStatePtr = new DMAG::Game(expandedNode->getState());
         auto clonedNode = std::make_shared<Node>(initialStatePtr, totalPlayers, currentPlayer, nullptr);
         double reward = simulate(clonedNode);
         backpropagate(selectedNode, reward);
-        // std::cout << i << std::endl;
+        std::cout << i << std::endl;
         // std::cin.ignore();
     }
 

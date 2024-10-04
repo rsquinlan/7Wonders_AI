@@ -49,7 +49,7 @@ int main(int argc, char **argv)
             }
 
             // Perform MCTS on the player's own tree starting from their current node
-            std::shared_ptr<Node> selectedNode = mctsPlayers[currentPlayer].search(5);
+            std::shared_ptr<Node> selectedNode = mctsPlayers[currentPlayer].search(10);
 
             // Get the best move from the selected node
             DMAG::Card bestMove = selectedNode->getAction();
@@ -73,13 +73,8 @@ int main(int argc, char **argv)
 
         gameInProgress = gameState.InGame();
         gameState.WriteGameStatus();
-        for (int playerIndex = 0; playerIndex < totalPlayers; ++playerIndex) {
-            // Get the root of the current player's tree
-            std::shared_ptr<Node> rootNode = mctsPlayers[playerIndex].getRoot();
-
-            // Access the game state from the root node
-            DMAG::Game& treeState = rootNode->getState();
-        }
+        mctsPlayers[0].printTree();
+        std::cin.ignore();
     }
 
 
