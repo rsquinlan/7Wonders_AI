@@ -15,7 +15,7 @@ using json = nlohmann::json;
 using namespace std;
 using namespace DMAG;
 
-#define NUM_PLAYERS 3
+#define NUM_PLAYERS 5
 
 namespace DMAG {
 
@@ -128,13 +128,16 @@ void Game::NextTurn(){
             
         // transfer the remaining card in each player's hand to the discarded card list
         for (Player* & player : player_list) {
+            std::cout << "here1" << std::endl;
             vector<Card> cards = player->GetHandCards();
             // cards must be size 1!!
             for (int i = 0; i < cards.size(); i++)
                 discard_pile.push_back(cards[i]);
         }
+        std::cout << "here" << std::endl;
 
         GiveCards();
+        std::cout << "here" << std::endl;
     }
     else {
         Player *player, *p1, *neighbor;
@@ -283,7 +286,7 @@ void Game::CreateDecks(){
     cards.push_back(Card(CARD_ID::archery_range, "Archery Range", CARD_TYPE::military, 2, CARD_ID::workshop, {2, 1, 0, 0, 0, 0, 0, 0}, {1, 1, 1, 2, 2}));
     cards.push_back(Card(CARD_ID::fortifications, "Fortifications", CARD_TYPE::military, 3, CARD_ID::walls, {0, 3, 0, 1, 0, 0, 0, 0}, {1, 1, 1, 1, 2}));
     cards.push_back(Card(CARD_ID::circus, "Circus", CARD_TYPE::military, 3, CARD_ID::training_ground, {0, 1, 0, 3, 0, 0, 0, 0}, {0, 1, 2, 3, 3}));
-    cards.push_back(Card(CARD_ID::arsenal, "Arsenal", CARD_TYPE::military, 3, CARD_ID::none, {2, 1, 0, 0, 1, 0, 0, 0}, {1, 1, 1, 1, 2}));
+    cards.push_back(Card(CARD_ID::arsenal, "Arsenal", CARD_TYPE::military, 3, CARD_ID::none, {2, 1, 0, 0, 1, 0, 0, 0}, {1, 2, 2, 2, 3}));
     cards.push_back(Card(CARD_ID::siege_workshop, "Siege Workshop", CARD_TYPE::military, 3, CARD_ID::laboratory, {1, 0, 3, 0, 0, 0, 0, 0}, {1, 1, 2, 2, 2}));
     // Scientific Structure
     cards.push_back(Card(CARD_ID::apothecary, "Apothecary", CARD_TYPE::scientific, 1, CARD_ID::none, {0, 0, 0, 0, 1, 0, 0, 0}, {1, 1, 2, 2, 2}));
@@ -295,7 +298,7 @@ void Game::CreateDecks(){
     cards.push_back(Card(CARD_ID::school, "School", CARD_TYPE::scientific, 2, CARD_ID::none, {1, 0, 0, 0, 0, 0, 1, 0}, {1, 1, 1, 1, 2}));
     cards.push_back(Card(CARD_ID::lodge, "Lodge", CARD_TYPE::scientific, 3, CARD_ID::dispensary, {0, 0, 2, 0, 1, 0, 1, 0}, {1, 1, 1, 2, 2}));
     cards.push_back(Card(CARD_ID::observatory, "Observatory", CARD_TYPE::scientific, 3, CARD_ID::laboratory, {0, 2, 0, 0, 1, 1, 0, 0}, {1, 1, 1, 1, 2}));
-    cards.push_back(Card(CARD_ID::university, "University", CARD_TYPE::scientific, 3, CARD_ID::library, {2, 0, 0, 0, 0, 1, 1, 0}, {1, 1, 2, 2, 2}));
+    cards.push_back(Card(CARD_ID::university, "University", CARD_TYPE::scientific, 3, CARD_ID::library, {2, 0, 0, 0, 0, 1, 1, 0}, {1, 2, 2, 2, 2}));
     cards.push_back(Card(CARD_ID::academy, "Academy", CARD_TYPE::scientific, 3, CARD_ID::school, {0, 0, 0, 3, 0, 1, 0, 0}, {1, 1, 1, 1, 2}));
     cards.push_back(Card(CARD_ID::study, "Study", CARD_TYPE::scientific, 3, CARD_ID::school, {1, 0, 0, 0, 1, 0, 1, 0}, {1, 1, 2, 2, 2}));
     // Guild
@@ -592,7 +595,9 @@ std::vector<Card> Game::getAllCardsForPlayer(int playerIndex){
 
 void Game::applyAction(int playerIndex, Card card){
     if(!playCard(playerIndex, card)){
+        std::cout << "failed to build" << std::endl;
         if(!buildWonder(playerIndex, card)){
+            std::cout << "failed to wonder" << std::endl;
             discardCard(playerIndex, card);
         }
     }
@@ -637,6 +642,15 @@ void Game::gameEnd(){
     // output results after game
     // match_log_results after end game
     fp.WriteMatchLog(player_list, time(0));
+}
+
+std::vector<int> Game::getScores(){
+    std::vector<int> scores;
+    for(Player* player : player_list){
+        scores.push_back(player->CalculateScore());
+    }
+
+    return scores;
 }
 
 }

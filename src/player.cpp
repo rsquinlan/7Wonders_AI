@@ -470,7 +470,7 @@ bool Player::ProduceResource(int resource, int quant){
 
     int needed = this->IncrementOnDemand(resource, quant, false);
     if (needed <= 0) {
-        std::cout <<  "  -> " << "produced the resource successfully!" << std::endl;
+        //std::cout <<  "  -> " << "produced the resource successfully!" << std::endl;
         return true;
     }
 

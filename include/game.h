@@ -16,8 +16,6 @@
 #include <resources.h>
 #include <filer.h>
 
-#define NUM_PLAYERS 3
-
 using json = nlohmann::json;
 
 namespace DMAG {
@@ -50,6 +48,7 @@ namespace DMAG {
         Card GetCardByName(std::string name);
         int GetResourceByName(std::string name);
         int getNumberOfPlayers();
+        std::vector<int> getScores();
 
         std::vector<Card> getPossibleCardsForPlayer(int playerIndex);
         std::vector<Card> getAllCardsForPlayer(int playerIndex);

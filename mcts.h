@@ -36,6 +36,8 @@ private:
 public:
     MCTS(const DMAG::Game& initialState, int totalPlayers, int currentPlayer, double explorationConstant = std::sqrt(2));
 
+    ~MCTS();
+
     // Perform MCTS search and return the best move for the current player
     std::shared_ptr<Node> search(int iterations);
 

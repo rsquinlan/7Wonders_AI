@@ -3,11 +3,19 @@
 
 // Selection step: Select the most promising child node based on UCB1 value
 std::shared_ptr<Node> MCTS::select(std::shared_ptr<Node> node) {
-    while (node->isFullyExpanded()) {
+    // Continue selecting until a leaf node (or expandable node) is found
+    while (!node->isLeaf()) {
+        // Select the best child based on UCT or another strategy
         node = node->selectBestChild();
+
+        // If the selected node is terminal, return it immediately
+        if (!node->getState().InGame()) {
+            return node;
+        }
     }
-    return node;
+    return node;  // Return the leaf or expandable node
 }
+
 
 // Expansion step: Expand a node by generating all possible joint actions
 std::shared_ptr<Node> MCTS::expand(std::shared_ptr<Node> node) {
@@ -60,18 +68,23 @@ std::shared_ptr<Node> MCTS::search(int iterations) {
         if(root->isFullyTerminal()){
             break;
         }
-        std::cout << i << std::endl;
         std::shared_ptr<Node> selectedNode = select(root);
-        std::cout << i << std::endl;
+        if(selectedNode->isFullyTerminal()){
+            backpropagate(selectedNode, selectedNode->getValue()/selectedNode->getVisitCount());
+            continue;
+        }
         std::shared_ptr<Node> expandedNode = expand(selectedNode);
-        std::cout << i << std::endl;
         // Create a new Game instance based on the selectedNode's state
         DMAG::Game* initialStatePtr = new DMAG::Game(expandedNode->getState());
         auto clonedNode = std::make_shared<Node>(initialStatePtr, totalPlayers, currentPlayer, nullptr);
         double reward = simulate(clonedNode);
         backpropagate(selectedNode, reward);
-        std::cout << i << std::endl;
         // std::cin.ignore();
+    }
+
+    if(root->getChildren().size() == 0){
+        root->setAction(root->getState().getAllCardsForPlayer(currentPlayer)[0]);
+        return root;
     }
 
     // Find the best child node based on the average value per visit
@@ -123,4 +136,8 @@ void MCTS::setRoot(std::shared_ptr<Node> newRoot) {
 
 void MCTS::syncTreeWithGameState(DMAG::Game& updatedState) {
     root->setState(updatedState);  // Set the new root state for synchronization
+}
+
+MCTS::~MCTS() {
+    root.reset();
 }

@@ -22,6 +22,7 @@ public:
     DMAG::Card getAction() const;  
     void setState(DMAG::Game& newState);
     bool isFullyTerminal();
+    bool isLeaf();
 
 private:
     DMAG::Game *state;

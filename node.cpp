@@ -31,12 +31,16 @@ std::shared_ptr<Node> Node::selectBestChild() const {
         }  
         
         ucbValue = (child->value / child->visitCount) + 
-                          sqrt(2 * log(visitCount) / child->visitCount);
+                          sqrt(1 * log(visitCount) / child->visitCount);
 
         if (ucbValue > bestValue && !child->isFullyTerminal()) {
             bestValue = ucbValue;
             bestChild = child;  // Directly assign the shared_ptr
         }
+    }
+
+    if(!bestChild){
+        return(children[0]);
     }
 
     return bestChild;  // Return the selected child
@@ -109,72 +113,59 @@ std::shared_ptr<Node> Node::expand() {
         possibleActions.push_back(state->getAllCardsForPlayer(activePlayer)[0]);
     }
 
-    // Step 3: Select a random action until we find one that hasn't been expanded yet
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dist(0, possibleActions.size() - 1);
+    // Step 3: Loop through all possible actions and create child nodes for each
+    for (const DMAG::Card& selectedAction : possibleActions) {
+        // Create a new state to avoid modifying the current state
+        DMAG::Game* newState = new DMAG::Game(*state);
 
-    DMAG::Card selectedAction;
-    bool actionExists = true;
+        // Apply the active player's action
+        newState->playCard(activePlayer, selectedAction);  // Apply action to the new state for the active player
 
-    // Loop until we find a non-expanded action
-    while (actionExists) {
-        selectedAction = possibleActions[dist(gen)];  // Pick a random action
+        // Simulate actions for the other players to bring the game state up to date
+        for (int playerIndex = 0; playerIndex < totalPlayers; ++playerIndex) {
+            if (playerIndex != activePlayer) {
+                std::vector<DMAG::Card> possibleCards = newState->getPossibleCardsForPlayer(playerIndex);
 
-        // Check if this action has already been expanded as a child
-        actionExists = std::any_of(children.begin(), children.end(),
-            [&](const std::shared_ptr<Node>& child) {
-                return child->getAction().GetId() == selectedAction.GetId();
-            });
+                if (!possibleCards.empty()) {
+                    // Use random device to generate a random card index
+                    std::random_device rd;
+                    std::mt19937 gen(rd());
+                    std::uniform_int_distribution<> dist(0, possibleCards.size() - 1);
 
-        // If action doesn't exist as a child, break the loop
-        if (!actionExists) {
-            break;
-        }
-    }
+                    // Pick a random card from the possible cards
+                    int randomIndex = dist(gen);
+                    DMAG::Card randomAction = possibleCards[randomIndex];
 
-    DMAG::Game* newState = new DMAG::Game(*state); 
-
-    // Apply the active player's action
-    newState->playCard(activePlayer, selectedAction);  // Apply action to the new state for the active player
-
-    // Simulate actions for the other players to bring the game state up to date
-    for (int playerIndex = 0; playerIndex < totalPlayers; ++playerIndex) {
-        if (playerIndex != activePlayer) {
-            std::vector<DMAG::Card> possibleCards = newState->getPossibleCardsForPlayer(playerIndex);
-            
-            if (!possibleCards.empty()) {
-                // Use random device to generate a random card index
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_int_distribution<> dist(0, possibleCards.size() - 1);
-
-                // Pick a random card from the possible cards
-                int randomIndex = dist(gen);
-                DMAG::Card randomAction = possibleCards[randomIndex];
-
-                // Apply the randomly selected card
-                newState->playCard(playerIndex, randomAction);
+                    // Apply the randomly selected card
+                    newState->playCard(playerIndex, randomAction);
+                }
             }
         }
+        newState->endTurn();
+
+        // Step 4: Create a child node with the selected action
+        auto childNode = std::make_shared<Node>(newState, totalPlayers, activePlayer, shared_from_this());
+
+        // Set the action (card) for the child node
+        childNode->setAction(selectedAction);  // This action represents the active player's move
+
+        // Add the child node to the current node's children
+        addChild(childNode);
+
+        // If the game state is terminal for the child node, mark it as terminal
+        if (!newState->InGame()) {
+            childNode->markChildAsTerminal();  // Mark this child node as terminal
+        }
     }
-    newState->endTurn();
 
-    // Step 4: Create a child node with the selected action
-    auto childNode = std::make_shared<Node>(newState, totalPlayers, activePlayer, shared_from_this());
+    // Step 5: Select and return a random child from the newly created children
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(0, children.size() - 1);
 
-    // Set the action (card) for the child node
-    childNode->setAction(selectedAction);  // This action represents the active player's move
-
-    // Add the child node to the current node's children
-    addChild(childNode);
-
-    if(!newState->InGame()){
-        markChildAsTerminal();
-    }
-
-    return childNode;
+    return children[dist(gen)];
 }
+
 
 bool Node::isFullyTerminal(){
     return terminalChildren >= state->getPossibleCardsForPlayer(activePlayer).size();
@@ -187,8 +178,12 @@ void Node::markChildAsTerminal() {
     // If all children are terminal, mark this node as terminal
     if (isFullyTerminal()) {
         // Recursively propagate terminal status to the parent if applicable
-        if (parent != nullptr) {
+        if (parent) {
             parent->markChildAsTerminal();  // Parent might also become terminal
         }
     }
+}
+
+bool Node::isLeaf(){
+    return children.empty();
 }
