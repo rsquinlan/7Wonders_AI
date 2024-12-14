@@ -493,19 +493,22 @@ void Game::Loop(){
             // Only the player with Halikarnassos will have something written on extra.
             extra = json_object["command"]["extra"];
 
-            if(argument == ""){
-                MCTS mctsPlayer(*this, number_of_players, i);
-                std::shared_ptr<Node> selectedNode = mctsPlayer.search(1500, 0.01);
-                DMAG::Card bestMove = selectedNode->getAction();
-                moves[i] = bestMove;
-                continue;
-            }
-
             // Turns 6 13 and 20 -> last card in hand card.
             // If the player doesn't have the ability to play the seventh card,
             // just skip the turn (i.e. don't do anything).
             if (this->turn == 6 || this->turn == 13 || this->turn == 20) {
-                if (!player_list[i]->PlaySeventh()) continue;
+                if (!player_list[i]->PlaySeventh()) {
+                    NextTurn();
+                    continue;
+                }
+            }
+
+            if(argument == ""){
+                MCTS mctsPlayer(*this, number_of_players, i);
+                std::shared_ptr<Node> selectedNode = mctsPlayer.search(500, 0.4);
+                DMAG::Card bestMove = selectedNode->getAction();
+                moves[i] = bestMove;
+                continue;
             }
 
             Card card_played = GetCardByName(argument);
@@ -567,6 +570,8 @@ void Game::Loop(){
         NextTurn();
     }
 
+    fp.WriteMessage("ready", "./io/bots_done.txt");
+
     //calculate stuff
     std::ofstream results;
     results.open("results.txt");
@@ -575,6 +580,7 @@ void Game::Loop(){
         // Copies a neighbor guild before scoring if the player has the ability to do so.
         player_list[i]->CopyGuild();
         results << "Player " << i+1 << " score: " << player_list[i]->CalculateScore() << std::endl;
+        cout << "Player " << i+1 << " score: " << player_list[i]->CalculateScore() << std::endl; 
     }
 
     results << std::endl;
