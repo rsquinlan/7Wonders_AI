@@ -15,6 +15,7 @@ from threading import Thread
 import subprocess
 import sys
 import json
+import os
 
 GAME_ROOT = '.'
 IO_DIR = './io' # se tiver executando interface e jogo separados usar './build/io'
@@ -198,7 +199,7 @@ def load_header():
     text = 'Era: ' + str(game_json['game']['era']) + '     Turn: ' + str(game_json['game']['turn']+1) + '     ' + ('>>' if game_json['game']['clockwise'] else '<<')
     label_infos = Label(canvas, bg=bg, text=text, font=("Verdana", 11))
     label_infos.place(x=pad, y=pad*2)
-    btn_play = Button(canvas, width=20, text='Jogar', font=('Verdana', 11), command=play)
+    btn_play = Button(canvas, width=20, text='Play', font=('Verdana', 11), command=play)
     btn_play.place(x=w_width/2-60, y=5)
 
 def change_action(player, action):
@@ -282,9 +283,7 @@ def mouse_clicked(event):
 def new_turn():
     global game_json, label_infos, root
 
-    if game_json['game']['turn'] == 20:
-        root.destroy()
-        sys.exit()
+    wait_for_bots(IO_DIR + '/bots_done.txt')
 
     with open(IO_DIR+'/game_status.json') as f:
         game_json = json.load(f)
@@ -301,21 +300,54 @@ def new_turn():
     load_vps()
     load_played_cards()
 
+    if game_json['game']['turn'] == 22:
+        print("game end")
+        while True:
+            print("game over")
+        root.destroy()
+        sys.exit()
+
+    
+
+def wait_for_bots(file_path):
+    """
+    Waits for the 'ready' signal from bots_done.txt and removes the line.
+    :param file_path: Path to the bots_done.txt file
+    """
+    while True:
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                lines = file.readlines()
+        except FileNotFoundError:
+            lines = []
+
+        # Check if the first line says "ready"
+        if lines and lines[0].strip()[0] == "\"":
+            # Remove the first line
+            with open(file_path, 'w') as file:
+                file.writelines(lines[1:])
+            break
+
+        # Brief pause to avoid excessive CPU usage
+        sleep(1)
+
 def play():
     global bots
 
+    # Validate player actions
     for i in range(players):
         if i < bots:
             continue
 
         if card_selected[i][0] == -1:
-            messagebox.showinfo('Player '+str(i), 'Select a card')
+            messagebox.showinfo('Player ' + str(i), 'Select a card')
             return
         if action_active[i] == 0 and not card_selected[i][1] in game_json['players'][str(i)]['cards_playable']:
-            messagebox.showinfo('Player '+str(i), 'Select a playable card')
+            messagebox.showinfo('Player ' + str(i), 'Select a playable card')
             return
 
-    file_ready = open(IO_DIR+'/ready.txt', 'w')
+    # Write commands for each player
+    file_ready = open(IO_DIR + '/ready.txt', 'w')
     data = {}
     for i in range(players):
         data['command'] = {
@@ -323,14 +355,12 @@ def play():
             'argument': card_selected[i][1],
             'extra': ""
         }
-        
-        if i >= bots:
-            with open(IO_DIR+'/player_'+str(i+1)+'.json', 'w') as f:
-                json.dump(data, f)
+
+        with open(IO_DIR + '/player_' + str(i + 1) + '.json', 'w') as f:
+            json.dump(data, f)
 
         file_ready.write('ready\n')
     file_ready.close()
-    sleep(secs_to_load)
     new_turn()
 
 def initGUI():
@@ -363,12 +393,34 @@ class Game(Thread):
     def run(self):
         subprocess.call(self.exe_path)
 
+def initialize_player_files(num_players=3, directory="io"):
+    """
+    Initialize player files by overwriting them with blank content.
+    
+    Args:
+        num_players (int): Number of players in the game.
+        directory (str): Directory where player files are stored.
+    """
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    for i in range(1, num_players + 1):
+        file_path = os.path.join(directory, f"player_{i}.json")
+        with open(file_path, 'w') as file:
+            file.write("{}")  # Writing an empty JSON object to each file
+    
+    file_path = os.path.join(directory, f"bots_done.txt")
+    open(file_path, 'w').close()
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:   
         print('Execute $ ' + sys.argv[0] + ' <num_bots>')
 
     global bots
     bots = int(sys.argv[1])
+
+    initialize_player_files()
 
 #    if not 'startGame=0' in sys.argv:
     game = Game(BUILD_DIR+'/7Wonders')

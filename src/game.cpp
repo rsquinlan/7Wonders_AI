@@ -9,13 +9,12 @@
 #include <iomanip>
 #include <algorithm>
 #include <nlohmann/json.hpp>
+#include "../mcts.h"
 
 using json = nlohmann::json;
 
 using namespace std;
 using namespace DMAG;
-
-#define NUM_PLAYERS 5
 
 namespace DMAG {
 
@@ -50,8 +49,8 @@ int Game::GetResourceByName(std::string name){
 /*
     * Initializes the game variables.
     */
-Game::Game(){
-    this->number_of_players = NUM_PLAYERS;
+Game::Game(int num_players){
+    this->number_of_players = num_players;
     this->era = 1;
     this->turn = 0;
     //deck[this->era - 1] = Deck(this->era, this->number_of_players);
@@ -128,13 +127,11 @@ void Game::NextTurn(){
             
         // transfer the remaining card in each player's hand to the discarded card list
         for (Player* & player : player_list) {
-            std::cout << "here1" << std::endl;
             vector<Card> cards = player->GetHandCards();
             // cards must be size 1!!
             for (int i = 0; i < cards.size(); i++)
                 discard_pile.push_back(cards[i]);
         }
-        std::cout << "here" << std::endl;
 
         GiveCards();
         std::cout << "here" << std::endl;
@@ -331,8 +328,7 @@ void Game::CreateDecks(){
 }
 
 
-int Game::NewGame(int _players){
-    this->number_of_players = _players;
+int Game::NewGame(){
     Player *p;
 
     for(int i = 0; i < this->number_of_players; i++){
@@ -360,7 +356,7 @@ int Game::NewGame(int _players){
 
 void Game::Init(){
     CreateWonders();
-    fp.Init(NUM_PLAYERS);
+    fp.Init(number_of_players);
 }
 
 void Game::Close(){
@@ -458,7 +454,7 @@ void Game::WriteGameStatus() {
         status["players"][to_string(i)]["amount"]["manufactured_goods"] = player_list[i]->CalculateAmountManufacturedGood();
     }
 
-    fp.WriteMessage(status, "../io/game_status.json");
+    fp.WriteMessage(status, "./io/game_status.json");
 }
 
 void Game::Loop(){
@@ -468,7 +464,6 @@ void Game::Loop(){
     // fp.StartLog(time(0));
 
     while(InGame()){
-
         WriteGameStatus();
 
         cout << "\n:::TURN " << (short)this->turn << ":::" << endl;
@@ -487,6 +482,8 @@ void Game::Loop(){
         cout << "<Waiting players...>" << endl;
         while(!fp.ArePlayersReady());
 
+        DMAG::Card moves[2];
+
         for(int i = 0; i < number_of_players; i++){
             json_object = fp.ReadMessages(i);
             // handle command inside json_object
@@ -495,6 +492,14 @@ void Game::Loop(){
 
             // Only the player with Halikarnassos will have something written on extra.
             extra = json_object["command"]["extra"];
+
+            if(argument == ""){
+                MCTS mctsPlayer(*this, number_of_players, i);
+                std::shared_ptr<Node> selectedNode = mctsPlayer.search(1500, 0.01);
+                DMAG::Card bestMove = selectedNode->getAction();
+                moves[i] = bestMove;
+                continue;
+            }
 
             // Turns 6 13 and 20 -> last card in hand card.
             // If the player doesn't have the ability to play the seventh card,
@@ -540,6 +545,10 @@ void Game::Loop(){
             // fp.WriteLog(era, turn, player_list[i]->GetId(), hand_cards_bkp, command, argument);
         }
 
+        for (int i = 0; i < 2; i++){
+            playCard(i, moves[i]);
+        }
+
         // Moves the game to the next turn.
         // VERY IMPORTANT: call player->ResetUsed() for each player at the end of a turn!
         for (int i = 0; i < player_list.size(); i++) {
@@ -554,6 +563,7 @@ void Game::Loop(){
             }
         }
 
+        fp.WriteMessage("ready", "./io/bots_done.txt");
         NextTurn();
     }
 
@@ -561,7 +571,7 @@ void Game::Loop(){
     std::ofstream results;
     results.open("results.txt");
 
-    for(int i = 0; i< NUM_PLAYERS; ++i){
+    for(int i = 0; i< number_of_players; ++i){
         // Copies a neighbor guild before scoring if the player has the ability to do so.
         player_list[i]->CopyGuild();
         results << "Player " << i+1 << " score: " << player_list[i]->CalculateScore() << std::endl;
@@ -585,11 +595,11 @@ void Game::endTurn(){
     NextTurn();
 }
 
-std::vector<Card> Game::getPossibleCardsForPlayer(int playerIndex){
+std::vector<Card> Game::getPossibleCardsForPlayer(int playerIndex) const{
     return player_list[playerIndex]->GetPlayableCards();
 }
 
-std::vector<Card> Game::getAllCardsForPlayer(int playerIndex){
+std::vector<Card> Game::getAllCardsForPlayer(int playerIndex) const{
     return player_list[playerIndex]->GetHandCards();
 }
 
@@ -619,7 +629,7 @@ int Game::getNumberOfPlayers(){
     return number_of_players;
 }
 
-int Game::getPlayerScore(int playerIndex){
+int Game::getPlayerScore(int playerIndex) const{
     return player_list[playerIndex]->CalculateScore();
 }
 
@@ -628,7 +638,7 @@ void Game::gameEnd(){
     std::ofstream results;
     results.open("results.txt");
 
-    for(int i = 0; i< NUM_PLAYERS; ++i){
+    for(int i = 0; i< number_of_players; ++i){
         // Copies a neighbor guild before scoring if the player has the ability to do so.
         player_list[i]->CopyGuild();
         results << "Player " << i+1 << " score: " << player_list[i]->CalculateScore() << std::endl;
@@ -641,7 +651,7 @@ void Game::gameEnd(){
     //end game?
     // output results after game
     // match_log_results after end game
-    fp.WriteMatchLog(player_list, time(0));
+    //fp.WriteMatchLog(player_list, time(0));
 }
 
 std::vector<int> Game::getScores(){

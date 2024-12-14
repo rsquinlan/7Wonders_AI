@@ -9,6 +9,7 @@ class Filer{
 	private:
 		std::string output;
 		int turn;
+		std::ofstream bots_file;
 		std::ofstream out_file;
 		std::ofstream turn_file;
 		std::ofstream log_file;

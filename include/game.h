@@ -22,20 +22,21 @@ namespace DMAG {
 
     class Game {
     private:
-        std::vector<Player*> player_list;
-        unsigned char number_of_players;
-        short era;
-        unsigned char turn;
         std::vector<Wonder*> wonders;
         std::vector<Card> deck[3]; // To be changed to Deck deck[3];
         std::vector<Card> discard_pile; // To be changed to Deck discard_pile;
         Filer fp;
 
     public:
-        Game();
+        std::vector<Player*> player_list;
+        unsigned char turn;
+        short era;
+        unsigned char number_of_players;
+        
+        Game(int num_players);
         Game(const Game& toCopy);
         void Init();
-        int NewGame(int _players);
+        int NewGame();
         void Close();
         void Loop();
         bool InGame();
@@ -50,13 +51,13 @@ namespace DMAG {
         int getNumberOfPlayers();
         std::vector<int> getScores();
 
-        std::vector<Card> getPossibleCardsForPlayer(int playerIndex);
-        std::vector<Card> getAllCardsForPlayer(int playerIndex);
+        std::vector<Card> getPossibleCardsForPlayer(int playerIndex) const;
+        std::vector<Card> getAllCardsForPlayer(int playerIndex) const;
         void applyAction(int playerIndex, Card card);
         bool playCard(int playerIndex, Card card);
         bool buildWonder(int playerIndex, Card card);
         void discardCard(int playerIndex, Card card);
-        int getPlayerScore(int playerIndex);
+        int getPlayerScore(int playerIndex) const;
 
         void gameEnd();
         void WriteGameStatus();

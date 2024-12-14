@@ -82,6 +82,7 @@ public:
     bool HasPlayedCard(DMAG::Card c);
     std::vector<DMAG::Card> GetPlayableCards();
     void ResetUsed();
+    int countCardsOfType(int cardType) const;
 
     // Resource-related:
     bool ProduceResource(int resource, int quant);

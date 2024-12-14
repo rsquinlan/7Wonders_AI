@@ -71,7 +71,7 @@ bool Card::CanBePlayed(std::map<int, int> resources){
 }
 
 // Returns a map with the quantities needed of each resource to play the card.
-std::map<int, int> Card::MissingCards(std::map<int, int> resources) {
+std::map<int, int> Card::MissingCards(std::map<int, int> resources){
     std::map<int, int> missing{
         { RESOURCE::wood, 0 },
         { RESOURCE::ore, 0 },

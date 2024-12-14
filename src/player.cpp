@@ -1020,6 +1020,12 @@ int Player::CalculateAmountManufacturedGood(){
     return amount;
 }
 
+int Player::countCardsOfType(int cardType) const {
+    return std::count_if(this->cards_played.begin(), this->cards_played.end(), [&](const DMAG::Card& card) {
+        return card.GetType() == cardType;
+    });
+}
+
 ////////////////////////////
 // WONDER-RELATED EFFECTS //
 ////////////////////////////

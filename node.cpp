@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 // Constructor: Initializes a node with a given state and an optional parent.
-Node::Node(DMAG::Game* state, int totalPlayers, int activePlayer, std::shared_ptr<Node> parent)
+Node::Node(std::shared_ptr<DMAG::Game> state, int totalPlayers, int activePlayer, std::shared_ptr<Node> parent)
     : state(state), parent(parent), totalPlayers(totalPlayers), activePlayer(activePlayer),
       visitCount(0), value(0.0), terminalChildren(0) {}
 
@@ -53,8 +53,8 @@ void Node::update(double value) {
 }
 
 // Getter for the game state of this node.
-DMAG::Game& Node::getState() {
-    return *state;
+std::shared_ptr<DMAG::Game> Node::getState() const {
+    return state;  // Return shared_ptr to the state
 }
 
 // Getter for the parent node.
@@ -93,16 +93,9 @@ void Node::setAction(const DMAG::Card action) {
     this->action = action;
 }
 
-void Node::setState(DMAG::Game& newState) {
-    // Assign the new state to the node, creating a deep copy of the passed-in game state
-    if (state) {
-        delete state;  // Free the previous state to prevent memory leaks
-    }
-    state = new DMAG::Game(newState);  // Allocate new memory for the game state
+void Node::setState(std::shared_ptr<DMAG::Game> newState) {
+    state = newState;  // Simply set the new state; shared_ptr manages memory automatically
 }
-
-
-#include <algorithm> // For std::find_if
 
 std::shared_ptr<Node> Node::expand() {
     // Step 2: Get the possible actions (cards) for the active player
@@ -116,7 +109,7 @@ std::shared_ptr<Node> Node::expand() {
     // Step 3: Loop through all possible actions and create child nodes for each
     for (const DMAG::Card& selectedAction : possibleActions) {
         // Create a new state to avoid modifying the current state
-        DMAG::Game* newState = new DMAG::Game(*state);
+        auto newState = std::make_shared<DMAG::Game>(*state);
 
         // Apply the active player's action
         newState->playCard(activePlayer, selectedAction);  // Apply action to the new state for the active player
@@ -166,8 +159,7 @@ std::shared_ptr<Node> Node::expand() {
     return children[dist(gen)];
 }
 
-
-bool Node::isFullyTerminal(){
+bool Node::isFullyTerminal() {
     return terminalChildren >= state->getPossibleCardsForPlayer(activePlayer).size();
 }
 
@@ -184,6 +176,6 @@ void Node::markChildAsTerminal() {
     }
 }
 
-bool Node::isLeaf(){
+bool Node::isLeaf() {
     return children.empty();
 }
