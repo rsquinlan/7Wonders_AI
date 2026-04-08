@@ -1,4 +1,5 @@
 
+.venv/
 /cmake-build-debug/
 /build/
 /CMakeFiles/
@@ -9,4 +10,7 @@ cmake_install.cmake
 /io/
 /logs/
 results.txt
+/eval/
+/training/*.jsonl
+/training/model.onnx
 .clangd/

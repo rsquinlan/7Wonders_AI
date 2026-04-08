@@ -1,3 +1,6 @@
+#ifndef FILER_H
+#define FILER_H
+
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -29,3 +32,5 @@ class Filer{
 		void WriteLog(int era, int turn, int player_id, std::vector<DMAG::Card> hand_cards, std::string action, std::string card);
 		void WriteMatchLog(std::vector<DMAG::Player*> player_list, int log_id);
 };
+
+#endif

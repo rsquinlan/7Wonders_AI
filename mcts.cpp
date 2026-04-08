@@ -1,4 +1,5 @@
 #include "mcts.h"
+#include "utils.h"
 #include <random>
 #include <algorithm> // For std::max_element
 
@@ -30,17 +31,32 @@ double MCTS::simulate(std::shared_ptr<DMAG::Game> game, double explorationChance
 
     // Loop through all players and simulate their moves
     while (game->InGame()) {
+        std::cout << "-------------------------" << std::endl;
+        std::cout << "Turn: " << (int)game->turn << std::endl;
+        for (int i = 0; i < game->player_list.size(); ++i) {
+            std::cout << "Player " << i << " hand: ";
+            auto cards = game->getAllCardsForPlayer(i);
+            std::cout << cards.size() << " cards: ";
+            for (const auto& card : cards) {
+            std::cout << card.GetName() << ", ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << "-------------------------" << std::endl;
         for (size_t i = 0; i < game->player_list.size(); ++i) {
             if (probDist(gen) < explorationChance) {
                 // Exploration: Choose a random playable card
                 auto playableCards = game->player_list[i]->GetPlayableCards();
                 if (!playableCards.empty()) {
                     std::uniform_int_distribution<> cardDist(0, playableCards.size() - 1);
+                    std::cout << "here" << std::endl;
                     game->applyAction(i, playableCards[cardDist(gen)]);
                 }
             } else {
-                // Exploitation: Use the getBestMove function to select the move
-                DMAG::Card bestMove = getBestMove(game, i);
+                // Exploitation: use injected rollout policy if set, otherwise heuristic
+                DMAG::Card bestMove = rolloutPolicy
+                    ? rolloutPolicy(game, i)
+                    : getBestMove(game, i);
                 game->applyAction(i, bestMove);
             }
         }
@@ -60,15 +76,17 @@ void MCTS::backpropagate(std::shared_ptr<Node> node, double reward) {
     }
 }
 
-MCTS::MCTS(const DMAG::Game& initialState, int totalPlayers, int currentPlayer, double explorationConstant)
-    : totalPlayers(totalPlayers), currentPlayer(currentPlayer), explorationConstant(explorationConstant) {
+MCTS::MCTS(const DMAG::Game& initialState, int totalPlayers, int currentPlayer,
+           double explorationConstant, RolloutPolicy rolloutPolicy)
+    : totalPlayers(totalPlayers), currentPlayer(currentPlayer),
+      explorationConstant(explorationConstant), rolloutPolicy(std::move(rolloutPolicy)) {
     auto initialStatePtr = std::make_shared<DMAG::Game>(initialState);
     root = std::make_shared<Node>(initialStatePtr, totalPlayers, currentPlayer, nullptr);
 }
 
 // Perform MCTS search and return the best move for the current player
 std::shared_ptr<Node> MCTS::search(int iterations, double explorationChance) {
-    for (int i = 0; i < iterations; ++i) {
+    for (int i = 0; i < 5; ++i) {
         if (root->isFullyTerminal()) {
             break;
         }
@@ -132,6 +150,24 @@ void MCTS::syncTreeWithGameState(std::shared_ptr<DMAG::Game> updatedState) {
 
 MCTS::~MCTS() {
     root.reset();
+}
+
+std::vector<float> MCTS::getVisitDistribution() const {
+    std::vector<float> dist(POLICY_SIZE, 0.0f);
+    const auto& children = root->getChildren();
+    if (children.empty()) return dist;
+
+    double total = 0.0;
+    for (const auto& child : children)
+        total += child->getVisitCount();
+    if (total == 0.0) return dist;
+
+    for (const auto& child : children) {
+        int idx = child->getAction().GetId() - 1;  // 0-based index into policy vector
+        if (idx >= 0 && idx < POLICY_SIZE)
+            dist[idx] = static_cast<float>(child->getVisitCount() / total);
+    }
+    return dist;
 }
 
 double MCTS::evaluateMoveHeuristic(const std::shared_ptr<DMAG::Game>& game, int playerIndex, const DMAG::Card& card) {

@@ -134,7 +134,6 @@ void Game::NextTurn(){
         }
 
         GiveCards();
-        std::cout << "here" << std::endl;
     }
     else {
         Player *player, *p1, *neighbor;
@@ -570,8 +569,6 @@ void Game::Loop(){
         NextTurn();
     }
 
-    fp.WriteMessage("ready", "./io/bots_done.txt");
-
     //calculate stuff
     std::ofstream results;
     results.open("results.txt");
@@ -585,6 +582,8 @@ void Game::Loop(){
 
     results << std::endl;
     results.close();
+
+    fp.WriteMessage("ready", "./io/bots_done.txt");
 
     //end game?
     // output results after game

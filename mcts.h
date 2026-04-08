@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 #include <cmath>
 #include <limits>
 #include <algorithm>
@@ -12,12 +13,16 @@
 #include "card.h"
 #include "node.h"
 
+// Rollout policy: given a game state and player index, return the card to play.
+using RolloutPolicy = std::function<DMAG::Card(const std::shared_ptr<DMAG::Game>&, int)>;
+
 class MCTS {
 private:
     std::shared_ptr<Node> root;  // Root node of the tree
     int totalPlayers;            // Total number of players in the game
     int currentPlayer;           // Current player for whom MCTS is being executed
     double explorationConstant;  // Exploration constant for UCB1 formula
+    RolloutPolicy rolloutPolicy; // Optional: replaces heuristic in simulate(). Null = use heuristic.
 
     // Selection step: Select the most promising child node based on UCB1 value
     std::shared_ptr<Node> select(std::shared_ptr<Node> node);
@@ -36,8 +41,11 @@ private:
     double evaluateMoveHeuristic(const std::shared_ptr<DMAG::Game>& game, int playerIndex, const DMAG::Card& card);
 
 public:
-    // Constructor for initializing MCTS with the game state and player information
-    MCTS(const DMAG::Game& initialState, int totalPlayers, int currentPlayer, double explorationConstant = std::sqrt(2));
+    // Constructor for initializing MCTS with the game state and player information.
+    // Pass a RolloutPolicy to replace the heuristic in simulation (e.g. NN-based policy).
+    MCTS(const DMAG::Game& initialState, int totalPlayers, int currentPlayer,
+         double explorationConstant = std::sqrt(2),
+         RolloutPolicy rolloutPolicy = nullptr);
 
     // Destructor to clean up resources
     ~MCTS();
@@ -60,6 +68,11 @@ public:
     DMAG::Card getBestMove(const std::shared_ptr<DMAG::Game>& game, int playerIndex);
 
     void hideGameStateForPlayer(std::shared_ptr<DMAG::Game>& game, int playerIndex);
+
+    // Returns a POLICY_SIZE (75) vector of normalized MCTS visit counts over
+    // root's children after search(). Index = card.GetId()-1. Zeros for
+    // unexplored or out-of-hand cards.
+    std::vector<float> getVisitDistribution() const;
 };
 
 #endif // MCTS_H

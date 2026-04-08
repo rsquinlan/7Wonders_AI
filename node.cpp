@@ -31,7 +31,7 @@ std::shared_ptr<Node> Node::selectBestChild() const {
         }  
         
         ucbValue = (child->value / child->visitCount) + 
-                          sqrt(1 * log(visitCount) / child->visitCount);
+                          sqrt(2 * log(visitCount) / child->visitCount);
 
         if (ucbValue > bestValue && !child->isFullyTerminal()) {
             bestValue = ucbValue;

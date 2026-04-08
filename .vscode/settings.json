@@ -53,6 +53,12 @@
         "streambuf": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "optional": "cpp"
-    }
+        "optional": "cpp",
+        "chrono": "cpp",
+        "ratio": "cpp",
+        "semaphore": "cpp",
+        "stop_token": "cpp",
+        "thread": "cpp"
+    },
+    "python-envs.defaultEnvManager": "ms-python.python:system"
 }
