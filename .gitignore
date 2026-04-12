@@ -11,6 +11,22 @@ cmake_install.cmake
 /logs/
 results.txt
 /eval/
+
+# Training data (large files)
 /training/*.jsonl
-/training/model.onnx
+/training/pt_data/
+/training/shard_data/
+/training/mmap_data/
+/training/*.log
+/training/train_files.txt
+/training/gen_iter_*.log
+
+# Models and checkpoints
+/training/model*.onnx*
+/training/*.pt
+
+# External dependencies
+onnxruntime-linux-x64-*.tgz
+onnxruntime-linux-x64-*/
+
 .clangd/
