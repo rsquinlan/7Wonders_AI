@@ -165,7 +165,7 @@ bool Gizah_b::AddStage(Player *p){
         } break;
 
     // Building stage 4
-    case 4:
+    case 3:
         if (p->ProduceResource(RESOURCE::stone, this->cost[RESOURCE::stone]-p_resources[RESOURCE::stone]) &&
             p->ProduceResource(RESOURCE::papyrus, this->cost[RESOURCE::papyrus]-p_resources[RESOURCE::papyrus])) {
             this->stage++;
@@ -194,7 +194,7 @@ bool Gizah_b::CanAddStage(Player *p){
         if (p->ProduceResource(RESOURCE::clay, this->cost[RESOURCE::clay]-p_resources[RESOURCE::clay])) {
             stage_built = true;
         } break;
-    case 4:
+    case 3:
         if (p->ProduceResource(RESOURCE::stone, this->cost[RESOURCE::stone]-p_resources[RESOURCE::stone]) &&
             p->ProduceResource(RESOURCE::papyrus, this->cost[RESOURCE::papyrus]-p_resources[RESOURCE::papyrus])) {
             stage_built = true;
@@ -209,7 +209,7 @@ bool Gizah_b::CanAddStage(Player *p){
 Babylon_a::Babylon_a(){
     this->id = WONDER_ID::babylon_a;
     this->name = "Babylon A";
-    this->production = RESOURCE::clay;
+    this->production = RESOURCE::wood;
     this->effects = {EFFECT::vp, EFFECT::add_science, EFFECT::vp};
     this->cost[RESOURCE::clay] = 2;
 }
@@ -275,7 +275,7 @@ bool Babylon_a::CanAddStage(Player* p){
 Babylon_b::Babylon_b(){
     this->id = WONDER_ID::babylon_b;
     this->name = "Babylon B";
-    this->production = RESOURCE::clay;
+    this->production = RESOURCE::wood;
     this->effects = {EFFECT::vp, EFFECT::play_seventh_card, EFFECT::add_science};
     this->cost[RESOURCE::clay] = 1;
     this->cost[RESOURCE::loom] = 1;
@@ -350,7 +350,7 @@ bool Babylon_b::CanAddStage(Player* p){
 Olympia_a::Olympia_a(){
     this->id = WONDER_ID::olympia_a;
     this->name = "Olympia A";
-    this->production = RESOURCE::wood;
+    this->production = RESOURCE::clay;
     this->effects = {EFFECT::vp, EFFECT::hand_build_for_free, EFFECT::vp};
     this->cost[RESOURCE::wood] = 2;
 }
@@ -416,7 +416,7 @@ bool Olympia_a::CanAddStage(Player* p){
 Olympia_b::Olympia_b(){
     this->id = WONDER_ID::olympia_b;
     this->name = "Olympia B";
-    this->production = RESOURCE::wood;
+    this->production = RESOURCE::clay;
     this->effects = {EFFECT::buy_raw_cheap, EFFECT::vp, EFFECT::copy_guild};
     this->cost[RESOURCE::wood] = 2;
 }

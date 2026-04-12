@@ -16,13 +16,18 @@
 // Rollout policy: given a game state and player index, return the card to play.
 using RolloutPolicy = std::function<DMAG::Card(const std::shared_ptr<DMAG::Game>&, int)>;
 
+// AlphaZero eval function: returns (policy vector, value) for a state.
+// policy: POLICY_SIZE floats (one per card, softmax). value: win probability [0,1].
+using EvalFn = std::function<std::pair<std::vector<float>, float>(const DMAG::Game&, int)>;
+
 class MCTS {
 private:
     std::shared_ptr<Node> root;  // Root node of the tree
     int totalPlayers;            // Total number of players in the game
     int currentPlayer;           // Current player for whom MCTS is being executed
     double explorationConstant;  // Exploration constant for UCB1 formula
-    RolloutPolicy rolloutPolicy; // Optional: replaces heuristic in simulate(). Null = use heuristic.
+    RolloutPolicy rolloutPolicy; // Fallback rollout policy (used only when evalFn is null)
+    EvalFn evalFn;               // AlphaZero: NN policy+value evaluation. When set, replaces rollout.
 
     // Selection step: Select the most promising child node based on UCB1 value
     std::shared_ptr<Node> select(std::shared_ptr<Node> node);
@@ -37,6 +42,7 @@ private:
     void printTreeRecursive(const Node* node, int depth) const;
 
     double simulate(std::shared_ptr<DMAG::Game> game, double explorationChance);
+    void setPriorsFromPolicy(std::shared_ptr<Node> node);
 
     double evaluateMoveHeuristic(const std::shared_ptr<DMAG::Game>& game, int playerIndex, const DMAG::Card& card);
 
@@ -45,7 +51,8 @@ public:
     // Pass a RolloutPolicy to replace the heuristic in simulation (e.g. NN-based policy).
     MCTS(const DMAG::Game& initialState, int totalPlayers, int currentPlayer,
          double explorationConstant = std::sqrt(2),
-         RolloutPolicy rolloutPolicy = nullptr);
+         RolloutPolicy rolloutPolicy = nullptr,
+         EvalFn evalFn = nullptr);
 
     // Destructor to clean up resources
     ~MCTS();
@@ -66,6 +73,17 @@ public:
     void syncTreeWithGameState(std::shared_ptr<DMAG::Game> updatedState);
 
     DMAG::Card getBestMove(const std::shared_ptr<DMAG::Game>& game, int playerIndex);
+
+    // Single select+expand step for batched external evaluation.
+    // Returns the expanded leaf; caller must call finishStep() with results.
+    std::shared_ptr<Node> selectAndExpand();
+
+    // Complete a batched step: set priors on leaf's children and backpropagate.
+    void finishStep(std::shared_ptr<Node> leaf,
+                    const std::vector<float>& policy, float value);
+
+    // Return the most-visited child of root (best move after search).
+    std::shared_ptr<Node> getBestChild() const;
 
     void hideGameStateForPlayer(std::shared_ptr<DMAG::Game>& game, int playerIndex);
 

@@ -117,11 +117,11 @@ void Game::NextTurn(){
         }
 
         era++;
-        cout << "-----------------------------------------------------------------\n";
-        if(era < 4)
-            cout << "New era: "<< era << endl;
-        else{
-            cout << "End of game" << endl;
+        if (!g_silent) cout << "-----------------------------------------------------------------\n";
+        if(era < 4) {
+            if (!g_silent) cout << "New era: "<< era << endl;
+        } else {
+            if (!g_silent) cout << "End of game" << endl;
             return;
         }
             
@@ -358,9 +358,12 @@ void Game::Init(){
     fp.Init(number_of_players);
 }
 
-void Game::Close(){
-    // deallocate memory
+Game::~Game() {
+    for (Player* p : player_list) delete p;
+    player_list.clear();
 }
+
+void Game::Close(){}
 
 void Game::WriteGameStatus() {
     json status;
@@ -608,11 +611,54 @@ std::vector<Card> Game::getAllCardsForPlayer(int playerIndex) const{
     return player_list[playerIndex]->GetHandCards();
 }
 
+// Returns all legal moves for a player:
+//   - BUILD_STRUCTURE for each playable card
+//   - BUILD_WONDER with each hand card (if wonder stage available)
+//   - DISCARD with each hand card
+// If no moves exist at all, returns a single DISCARD of the first hand card.
+std::vector<Move> Game::getAllMovesForPlayer(int playerIndex) const {
+    std::vector<Move> moves;
+    Player* p = player_list[playerIndex];
+
+    for (const Card& c : p->GetPlayableCards())
+        moves.push_back(Move(MoveType::BUILD_STRUCTURE, c));
+
+    if (p->CanBuildWonder()) {
+        for (const Card& c : p->GetHandCards())
+            moves.push_back(Move(MoveType::BUILD_WONDER, c));
+    }
+
+    for (const Card& c : p->GetHandCards())
+        moves.push_back(Move(MoveType::DISCARD, c));
+
+    if (moves.empty()) {
+        auto hand = p->GetHandCards();
+        if (!hand.empty())
+            moves.push_back(Move(MoveType::DISCARD, hand.front()));
+    }
+
+    return moves;
+}
+
+void Game::applyMove(int playerIndex, const Move& move) {
+    switch (move.type) {
+        case MoveType::BUILD_STRUCTURE:
+            if (!playCard(playerIndex, move.card))
+                discardCard(playerIndex, move.card);  // safety fallback
+            break;
+        case MoveType::BUILD_WONDER:
+            if (!buildWonder(playerIndex, move.card))
+                discardCard(playerIndex, move.card);  // safety fallback
+            break;
+        case MoveType::DISCARD:
+            discardCard(playerIndex, move.card);
+            break;
+    }
+}
+
 void Game::applyAction(int playerIndex, Card card){
     if(!playCard(playerIndex, card)){
-        std::cout << "failed to build" << std::endl;
         if(!buildWonder(playerIndex, card)){
-            std::cout << "failed to wonder" << std::endl;
             discardCard(playerIndex, card);
         }
     }

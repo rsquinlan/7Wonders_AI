@@ -60,5 +60,5 @@
         "stop_token": "cpp",
         "thread": "cpp"
     },
-    "python-envs.defaultEnvManager": "ms-python.python:system"
+    "python-envs.defaultEnvManager": "ms-python.python:venv"
 }

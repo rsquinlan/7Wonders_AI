@@ -4,6 +4,7 @@
 #include <card.h>
 #include <wonder.h>
 #include <resources.h>
+#include <silent.h>
 #include <vector>
 #include <list>
 #include <map>

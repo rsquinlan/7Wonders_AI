@@ -6,15 +6,15 @@
 enum PlayerMode { MCTS_MODE, HEURISTIC_MODE, RANDOM_MODE };
 
 
-// Selection step: Select the most promising child node based on UCB1 value
+// Selection step: traverse tree using PUCT until a leaf is reached
 std::shared_ptr<Node> MCTS::select(std::shared_ptr<Node> node) {
     while (!node->isLeaf()) {
-        node = node->selectBestChild();
+        node = node->selectBestChild(explorationConstant);
         if (!node->getState()->InGame()) {
             return node;
         }
     }
-    return node;  // Return the leaf or expandable node
+    return node;
 }
 
 // Expansion step: Expand a node by generating all possible joint actions
@@ -24,46 +24,20 @@ std::shared_ptr<Node> MCTS::expand(std::shared_ptr<Node> node) {
 
 #include <random>
 
-double MCTS::simulate(std::shared_ptr<DMAG::Game> game, double explorationChance) {
-    std::random_device rd;              // Seed for random number generator
-    std::mt19937 gen(rd());             // Mersenne Twister RNG
-    std::uniform_real_distribution<> probDist(0.0, 1.0); // For probability
+double MCTS::simulate(std::shared_ptr<DMAG::Game> game, double /*explorationChance*/) {
+    SilenceGuard _silence;
+    static std::mt19937 gen(std::random_device{}());
 
-    // Loop through all players and simulate their moves
     while (game->InGame()) {
-        std::cout << "-------------------------" << std::endl;
-        std::cout << "Turn: " << (int)game->turn << std::endl;
-        for (int i = 0; i < game->player_list.size(); ++i) {
-            std::cout << "Player " << i << " hand: ";
-            auto cards = game->getAllCardsForPlayer(i);
-            std::cout << cards.size() << " cards: ";
-            for (const auto& card : cards) {
-            std::cout << card.GetName() << ", ";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << "-------------------------" << std::endl;
-        for (size_t i = 0; i < game->player_list.size(); ++i) {
-            if (probDist(gen) < explorationChance) {
-                // Exploration: Choose a random playable card
-                auto playableCards = game->player_list[i]->GetPlayableCards();
-                if (!playableCards.empty()) {
-                    std::uniform_int_distribution<> cardDist(0, playableCards.size() - 1);
-                    std::cout << "here" << std::endl;
-                    game->applyAction(i, playableCards[cardDist(gen)]);
-                }
-            } else {
-                // Exploitation: use injected rollout policy if set, otherwise heuristic
-                DMAG::Card bestMove = rolloutPolicy
-                    ? rolloutPolicy(game, i)
-                    : getBestMove(game, i);
-                game->applyAction(i, bestMove);
-            }
+        for (int i = 0; i < (int)game->player_list.size(); ++i) {
+            auto allMoves = game->getAllMovesForPlayer(i);
+            if (allMoves.empty()) continue;
+            std::uniform_int_distribution<int> dist(0, allMoves.size() - 1);
+            game->applyMove(i, allMoves[dist(gen)]);
         }
         game->endTurn();
     }
 
-    // Return the final score of the player who initiated the simulation
     return game->getPlayerScore(currentPlayer);
 }
 
@@ -77,28 +51,69 @@ void MCTS::backpropagate(std::shared_ptr<Node> node, double reward) {
 }
 
 MCTS::MCTS(const DMAG::Game& initialState, int totalPlayers, int currentPlayer,
-           double explorationConstant, RolloutPolicy rolloutPolicy)
+           double explorationConstant, RolloutPolicy rolloutPolicy, EvalFn evalFn)
     : totalPlayers(totalPlayers), currentPlayer(currentPlayer),
-      explorationConstant(explorationConstant), rolloutPolicy(std::move(rolloutPolicy)) {
+      explorationConstant(explorationConstant),
+      rolloutPolicy(std::move(rolloutPolicy)),
+      evalFn(std::move(evalFn)) {
     auto initialStatePtr = std::make_shared<DMAG::Game>(initialState);
     root = std::make_shared<Node>(initialStatePtr, totalPlayers, currentPlayer, nullptr);
 }
 
+// Set prior probabilities on a node's children using the policy head output.
+// Must be called after expand() has created the children.
+void MCTS::setPriorsFromPolicy(std::shared_ptr<Node> node) {
+    auto [policy, value] = evalFn(*node->getState(), currentPlayer);
+    node->setPolicyCache(policy);  // cache for future lazily-created children
+    for (auto& child : node->getChildren()) {
+        int idx = policyIndex(child->getMoveType(), child->getAction().GetId());
+        float prior = (idx >= 0 && idx < static_cast<int>(policy.size()))
+            ? policy[idx] : 0.0f;
+        child->setPrior(prior);
+    }
+}
+
 // Perform MCTS search and return the best move for the current player
 std::shared_ptr<Node> MCTS::search(int iterations, double explorationChance) {
-    for (int i = 0; i < 5; ++i) {
-        if (root->isFullyTerminal()) {
-            break;
-        }
+    // Prime the root: expand it and set priors on its children so PUCT
+    // uses the policy head from the very first selection step.
+    if (evalFn && root->isLeaf() && !root->isFullyTerminal()) {
+        expand(root);
+        setPriorsFromPolicy(root);
+        // Seed visit count so PUCT denominator is non-zero
+        root->update(0.0);
+    }
+
+    for (int i = 0; i < iterations; ++i) {
+        if (root->isFullyTerminal()) break;
 
         auto selectedNode = select(root);
         if (selectedNode->isFullyTerminal()) {
-            backpropagate(selectedNode, selectedNode->getValue() / selectedNode->getVisitCount());
+            double v = selectedNode->getVisitCount() > 0
+                ? selectedNode->getValue() / selectedNode->getVisitCount() : 0.0;
+            backpropagate(selectedNode, v);
             continue;
         }
 
         auto expandedNode = expand(selectedNode);
-        double reward = simulate(expandedNode->getState(), explorationChance);
+        double reward;
+
+        if (evalFn) {
+            // ── AlphaZero: value head replaces rollout; set priors on new children ──
+            auto [policy, value] = evalFn(*expandedNode->getState(), currentPlayer);
+            expandedNode->setPolicyCache(policy);
+            for (auto& child : expandedNode->getChildren()) {
+                int idx = policyIndex(child->getMoveType(), child->getAction().GetId());
+                float prior = (idx >= 0 && idx < static_cast<int>(policy.size()))
+                    ? policy[idx] : 0.0f;
+                child->setPrior(prior);
+            }
+            reward = static_cast<double>(value);
+        } else {
+            // ── Fallback: heuristic/rollout simulation ────────────────────
+            reward = simulate(expandedNode->getState(), explorationChance);
+        }
+
         backpropagate(expandedNode, reward);
     }
 
@@ -163,7 +178,7 @@ std::vector<float> MCTS::getVisitDistribution() const {
     if (total == 0.0) return dist;
 
     for (const auto& child : children) {
-        int idx = child->getAction().GetId() - 1;  // 0-based index into policy vector
+        int idx = policyIndex(child->getMoveType(), child->getAction().GetId());
         if (idx >= 0 && idx < POLICY_SIZE)
             dist[idx] = static_cast<float>(child->getVisitCount() / total);
     }
@@ -282,6 +297,34 @@ DMAG::Card MCTS::getBestMove(const std::shared_ptr<DMAG::Game>& game, int player
     }
 
     return bestCard;
+}
+
+std::shared_ptr<Node> MCTS::selectAndExpand() {
+    if (root->isFullyTerminal()) return root;
+    auto leaf = select(root);
+    if (leaf->isFullyTerminal()) return leaf;
+    return expand(leaf);
+}
+
+void MCTS::finishStep(std::shared_ptr<Node> leaf,
+                       const std::vector<float>& policy, float value) {
+    leaf->setPolicyCache(policy);
+    for (auto& child : leaf->getChildren()) {
+        int idx = policyIndex(child->getMoveType(), child->getAction().GetId());
+        float prior = (idx >= 0 && idx < static_cast<int>(policy.size()))
+            ? policy[idx] : 0.0f;
+        child->setPrior(prior);
+    }
+    backpropagate(leaf, static_cast<double>(value));
+}
+
+std::shared_ptr<Node> MCTS::getBestChild() const {
+    const auto& children = root->getChildren();
+    if (children.empty()) return root;
+    return *std::max_element(children.begin(), children.end(),
+        [](const std::shared_ptr<Node>& a, const std::shared_ptr<Node>& b) {
+            return a->getVisitCount() < b->getVisitCount();
+        });
 }
 
 void MCTS::hideGameStateForPlayer(std::shared_ptr<DMAG::Game>& game, int playerIndex) {

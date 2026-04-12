@@ -84,12 +84,12 @@ bool Player::BuildWonder(DMAG::Card c){
                 if (this->cards_hand[i].Equal(c)) break;
             }
             this->cards_hand.erase(this->cards_hand.begin()+i);
-            std::cout << this->id << " -> SUCCESS -> " << "builds a " << this->board->GetName() << " stage!" << std::endl;
+            if (!g_silent) std::cout << this->id << " -> SUCCESS -> " << "builds a " << this->board->GetName() << " stage!" << std::endl;
             return true;
         }
     }
 
-    std::cout << this->id << " -> FAILURE -> " << "couldn't build the next " << this->board->GetName() << " stage." << std::endl;
+    if (!g_silent) std::cout << this->id << " -> FAILURE -> " << "couldn't build the next " << this->board->GetName() << " stage." << std::endl;
     return false;
 }
 
@@ -279,7 +279,7 @@ bool Player::BuildStructure(DMAG::Card c, std::vector<DMAG::Card> cards, bool fr
     cards_played.push_back(c);
 
     if (!free_card) this->resources[RESOURCE::coins] -= cost;
-    std::cout << this->id << " -> SUCCESS -> " << "builds " << c.GetName() << std::endl;
+    if (!g_silent) std::cout << this->id << " -> SUCCESS -> " << "builds " << c.GetName() << std::endl;
     return true;
 }
 
@@ -378,7 +378,7 @@ void Player::Discard(DMAG::Card c){
     }
     this->cards_hand.erase(this->cards_hand.begin()+i);
 
-    std::cout << c.GetName() << " discarded." << std::endl;
+    if (!g_silent) std::cout << c.GetName() << " discarded." << std::endl;
 }
 
 // Returns the quantity of played cards of a given type (commercial, military, materials, etc.)
@@ -664,23 +664,23 @@ void Player::Battle(int age){
     // Battle with east neighbor
     if (this_shields > player_east->GetShields()) {
         this->victory_tokens += current_age_value;
-        std::cout <<  this->id << " -> WON battle with " << player_east->GetId() << std::endl;
+        if (!g_silent) std::cout <<  this->id << " -> WON battle with " << player_east->GetId() << std::endl;
     } else if (this_shields < player_east->GetShields()) {
-        std::cout <<  this->id << " -> LOST battle with " << player_east->GetId() << std::endl;
+        if (!g_silent) std::cout <<  this->id << " -> LOST battle with " << player_east->GetId() << std::endl;
         this->defeat_tokens += 1;
     } else {
-        std::cout <<  this->id << " -> DRAW battle with " << player_east->GetId() << std::endl;
+        if (!g_silent) std::cout <<  this->id << " -> DRAW battle with " << player_east->GetId() << std::endl;
     }
 
     // Battle with west neighbor
     if (this_shields > player_west->GetShields()) {
-        std::cout <<  this->id << " -> WON battle with " << player_west->GetId() << std::endl;
+        if (!g_silent) std::cout <<  this->id << " -> WON battle with " << player_west->GetId() << std::endl;
         this->victory_tokens += current_age_value;
     } else if (this_shields < player_west->GetShields()) {
-        std::cout <<  this->id << " -> LOST battle with " << player_west->GetId() << std::endl;
+        if (!g_silent) std::cout <<  this->id << " -> LOST battle with " << player_west->GetId() << std::endl;
         this->defeat_tokens += 1;
     } else {
-        std::cout <<  this->id << " -> DRAW battle with " << player_west->GetId() << std::endl;
+        if (!g_silent) std::cout <<  this->id << " -> DRAW battle with " << player_west->GetId() << std::endl;
     }
 }
 

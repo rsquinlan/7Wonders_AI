@@ -25,6 +25,12 @@ public:
                std::vector<float>& out_policy,
                float&              out_value);
 
+    // Batched inference: one ONNX call for N states at once.
+    // out_policies[i] has 75 floats; out_values[i] is a scalar.
+    void inferBatch(const std::vector<std::vector<float>>& embeddings,
+                    std::vector<std::vector<float>>&        out_policies,
+                    std::vector<float>&                     out_values);
+
 private:
     int num_players_;
     Ort::Env env_;

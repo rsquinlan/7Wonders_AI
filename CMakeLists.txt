@@ -11,12 +11,13 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 include_directories(include)
+include_directories(${CMAKE_SOURCE_DIR})
 
 set(SOURCES
     main.cpp
 	node.cpp
 	mcts.cpp
-	utils.cpp
+	src/utils.cpp
 	src/game.cpp
     src/card.cpp
 	src/player.cpp
@@ -25,7 +26,7 @@ set(SOURCES
 	)
 
 set(HEADERS
-	utils.h
+	include/utils.h
 	mcts.h
 	node.h
 	nn_player.h

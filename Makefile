@@ -177,6 +177,30 @@ mcts.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/7Wonders.dir/build.make CMakeFiles/7Wonders.dir/mcts.cpp.s
 .PHONY : mcts.cpp.s
 
+nn_player.o: nn_player.cpp.o
+.PHONY : nn_player.o
+
+# target to build an object file
+nn_player.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/7Wonders.dir/build.make CMakeFiles/7Wonders.dir/nn_player.cpp.o
+.PHONY : nn_player.cpp.o
+
+nn_player.i: nn_player.cpp.i
+.PHONY : nn_player.i
+
+# target to preprocess a source file
+nn_player.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/7Wonders.dir/build.make CMakeFiles/7Wonders.dir/nn_player.cpp.i
+.PHONY : nn_player.cpp.i
+
+nn_player.s: nn_player.cpp.s
+.PHONY : nn_player.s
+
+# target to generate assembly for a file
+nn_player.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/7Wonders.dir/build.make CMakeFiles/7Wonders.dir/nn_player.cpp.s
+.PHONY : nn_player.cpp.s
+
 node.o: node.cpp.o
 .PHONY : node.o
 
@@ -297,6 +321,30 @@ src/player.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/7Wonders.dir/build.make CMakeFiles/7Wonders.dir/src/player.cpp.s
 .PHONY : src/player.cpp.s
 
+src/utils.o: src/utils.cpp.o
+.PHONY : src/utils.o
+
+# target to build an object file
+src/utils.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/7Wonders.dir/build.make CMakeFiles/7Wonders.dir/src/utils.cpp.o
+.PHONY : src/utils.cpp.o
+
+src/utils.i: src/utils.cpp.i
+.PHONY : src/utils.i
+
+# target to preprocess a source file
+src/utils.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/7Wonders.dir/build.make CMakeFiles/7Wonders.dir/src/utils.cpp.i
+.PHONY : src/utils.cpp.i
+
+src/utils.s: src/utils.cpp.s
+.PHONY : src/utils.s
+
+# target to generate assembly for a file
+src/utils.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/7Wonders.dir/build.make CMakeFiles/7Wonders.dir/src/utils.cpp.s
+.PHONY : src/utils.cpp.s
+
 src/wonder.o: src/wonder.cpp.o
 .PHONY : src/wonder.o
 
@@ -321,30 +369,6 @@ src/wonder.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/7Wonders.dir/build.make CMakeFiles/7Wonders.dir/src/wonder.cpp.s
 .PHONY : src/wonder.cpp.s
 
-utils.o: utils.cpp.o
-.PHONY : utils.o
-
-# target to build an object file
-utils.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/7Wonders.dir/build.make CMakeFiles/7Wonders.dir/utils.cpp.o
-.PHONY : utils.cpp.o
-
-utils.i: utils.cpp.i
-.PHONY : utils.i
-
-# target to preprocess a source file
-utils.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/7Wonders.dir/build.make CMakeFiles/7Wonders.dir/utils.cpp.i
-.PHONY : utils.cpp.i
-
-utils.s: utils.cpp.s
-.PHONY : utils.s
-
-# target to generate assembly for a file
-utils.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/7Wonders.dir/build.make CMakeFiles/7Wonders.dir/utils.cpp.s
-.PHONY : utils.cpp.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -360,6 +384,9 @@ help:
 	@echo "... mcts.o"
 	@echo "... mcts.i"
 	@echo "... mcts.s"
+	@echo "... nn_player.o"
+	@echo "... nn_player.i"
+	@echo "... nn_player.s"
 	@echo "... node.o"
 	@echo "... node.i"
 	@echo "... node.s"
@@ -375,12 +402,12 @@ help:
 	@echo "... src/player.o"
 	@echo "... src/player.i"
 	@echo "... src/player.s"
+	@echo "... src/utils.o"
+	@echo "... src/utils.i"
+	@echo "... src/utils.s"
 	@echo "... src/wonder.o"
 	@echo "... src/wonder.i"
 	@echo "... src/wonder.s"
-	@echo "... utils.o"
-	@echo "... utils.i"
-	@echo "... utils.s"
 .PHONY : help
 
 

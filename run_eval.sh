@@ -2,26 +2,21 @@
 # Run N evaluation games and report win rates.
 # Player 0 = NN rollout, Players 1-4 = heuristic.
 #
-# Usage: ./run_eval.sh [num_games] [num_players] [search_depth] [model_num]
-#   ./run_eval.sh 50            # model.onnx (default)
-#   ./run_eval.sh 50 5 100 2    # model2.onnx
+# Usage: ./run_eval.sh [num_games] [num_players] [search_depth] [model_iter] [out_dir]
+#   ./run_eval.sh 200              # model_iter_0.onnx -> eval/model_iter_0/
+#   ./run_eval.sh 200 5 100 3      # model_iter_3.onnx -> eval/model_iter_3/
 
 set -euo pipefail
 
 NUM_GAMES=${1:-50}
 NUM_PLAYERS=${2:-5}
 SEARCH_DEPTH=${3:-500}
-MODEL_NUM=${4:-""}
+MODEL_ITER=${4:-0}
 EXPLORATION=0.2
-OUT_DIR="eval"
+OUT_DIR=${5:-"eval/model_iter_${MODEL_ITER}"}
 BINARY="./7Wonders"
 
-# Resolve model path: "" or "1" -> model.onnx, "2" -> model2.onnx, etc.
-if [ -z "$MODEL_NUM" ] || [ "$MODEL_NUM" = "1" ]; then
-    MODEL_PATH="training/model.onnx"
-else
-    MODEL_PATH="training/model${MODEL_NUM}.onnx"
-fi
+MODEL_PATH="training/model_iter_${MODEL_ITER}.onnx"
 
 if [ ! -f "$MODEL_PATH" ]; then
     echo "ERROR: model not found at $MODEL_PATH" >&2
